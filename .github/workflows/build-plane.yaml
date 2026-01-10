@@ -1,0 +1,60 @@
+name: Build Plane Worker
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - '.github/workflows/build-plane.yaml'
+  release:
+    types: [published]
+
+env:
+  CARGO_TERM_COLOR: always
+  WORKING_DIR: ./plane
+  AWS_ACCESS_KEY_ID: ef1cfe871f95d5da8a3fb6e8b323590a
+  AWS_SECRET_ACCESS_KEY: 6904e7b071a41e009c391c5ae80bde1dc6e075df5da1fc20ada7835f1c76f639
+  AWS_DEFAULT_REGION: ap-southeast-1
+  AWS_ENDPOINT_URL: https://iktmmqjgbygouyxdcrzh.storage.supabase.co/storage/v1/s3
+  S3_BUCKET: vectis-file
+
+jobs:
+  build:
+    name: Build Rust Binary
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.WORKING_DIR }}
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Rust
+      uses: dtolnay/rust-toolchain@stable
+
+    - name: Cache Cargo parameters
+      uses: Swatinem/rust-cache@v2
+
+    - name: Build Release
+      run: cargo build --release --verbose
+
+    - name: Upload Binary Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: plane-linux-amd64
+        path: target/release/plane
+        if-no-files-found: error
+        retention-days: 5
+
+    - name: Compress Binary
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+        cd target/release
+        tar -czvf ../../plane-${{ github.ref_name }}-linux-amd64.tar.gz plane
+
+    - name: Upload Release to S3
+      if: startsWith(github.ref, 'refs/tags/')
+      run: |
+         aws s3 cp plane-${{ github.ref_name }}-linux-amd64.tar.gz s3://${{ env.S3_BUCKET }}/releases/plane/${{ github.ref_name }}/plane-linux-amd64.tar.gz --endpoint-url ${{ env.AWS_ENDPOINT_URL }}
