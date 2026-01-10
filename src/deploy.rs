@@ -31,7 +31,7 @@ pub async fn project_deploy_handler(
     let project_dir = format!("{}/bundle", base_project_dir);
     
     // Ensure directory exists
-    tokio::fs::create_dir_all(&project_dir).await.map_err(|e| AppError::InternalServerError)?;
+    tokio::fs::create_dir_all(&project_dir).await.map_err(|_e| AppError::InternalServerError)?;
 
     let artifact_name: String;
 
@@ -56,7 +56,7 @@ pub async fn project_deploy_handler(
         }
 
         let bytes = response.bytes().await
-            .map_err(|e| AppError::InternalServerError)?;
+            .map_err(|_e| AppError::InternalServerError)?;
 
         let save_path = format!("{}/{}", project_dir, filename);
         tokio::fs::write(&save_path, &bytes).await.map_err(|e| AppError::InternalServerError)?;

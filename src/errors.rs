@@ -9,7 +9,7 @@ use thiserror::Error;
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Database error: {0}")]
-    Database(#[from] sqlx::Error),
+    Database(String),
     #[error("Configuration error: {0}")]
     Config(#[from] config::ConfigError),
     #[error("IO error: {0}")]
@@ -27,8 +27,8 @@ pub enum AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, message) = match self {
-            AppError::Database(e) => {
-                tracing::error!("Database error: {:?}", e);
+            AppError::Database(msg) => {
+                tracing::error!("Database error: {}", msg);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error")
             }
             AppError::Config(e) => {
