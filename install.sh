@@ -107,19 +107,16 @@ else
     echo "✅ Caddy already installed"
 fi
 
-# 5. Download Binary (Mock URL - Replace with Github Release URL)
-echo "⬇️  Downloading Plane binary..."
-# TODO: Replace with real URL, e.g., https://github.com/vectis/plane/releases/latest/download/plane-linux-amd64
-# For now, we assume this script is running where the binary might be or we fake it if local.
-# If running purely from curl, this step fails without a real URL.
-# Let's create a placeholder or try to copy if a local build exists (for testing).
+# 5. Download Binary
+echo "⬇️  Downloading vectis-node binary..."
+LATEST_RELEASE=$(curl -s https://api.github.com/repos/YOUR_GITHUB_USERNAME/vectis-node/releases/latest | grep "tag_name" | cut -d '"' -f 4)
 
-if [ -f "./target/release/plane" ]; then
-    cp ./target/release/plane /app/vectis/plane
+if [ -n "$LATEST_RELEASE" ]; then
+    curl -L -o /app/vectis/plane "https://github.com/YOUR_GITHUB_USERNAME/vectis-node/releases/download/${LATEST_RELEASE}/vectis-node"
+    echo "✅ Downloaded vectis-node ${LATEST_RELEASE}"
 else
-    # FAKE DOWNLOAD for demonstration
-    echo -e "${RED}⚠️  Real download URL missing. Please copy binary manually to /app/vectis/plane${NC}"
-    # touch /app/vectis/plane
+    echo -e "${RED}⚠️  Failed to fetch latest release. Please download manually.${NC}"
+    exit 1
 fi
 
 chmod +x /app/vectis/plane
