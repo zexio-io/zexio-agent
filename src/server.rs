@@ -5,7 +5,7 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use crate::{state::AppState, config::Settings, db, project, deploy, services, error::AppError};
+use crate::{state::AppState, config::Settings, db, project, deploy, services, errors::AppError};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tracing::info;
