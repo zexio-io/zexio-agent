@@ -12,7 +12,6 @@ mod errors;
 mod server;
 mod state;
 
-use std::sync::Arc;
 use tracing::info;
 
 #[tokio::main]

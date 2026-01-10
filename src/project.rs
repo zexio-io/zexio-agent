@@ -7,8 +7,9 @@ use serde::{Deserialize, Serialize};
 use crate::{state::AppState, errors::AppError, auth::WorkerAuth};
 use crate::caddy::Caddy;
 use trust_dns_resolver::TokioAsyncResolver;
-use sqlx::Row;
 use tracing::{info, warn};
+use std::fs;
+use std::process::Command;
 
 #[derive(Deserialize)]
 pub struct CreateProjectRequest {
@@ -303,7 +304,7 @@ pub async fn remove_domain_handler(
     // 1. Remove from Caddy
     let caddy = Caddy::new(state.settings.caddy.clone());
     caddy.remove_domain(&domain)
-        .map_err(|e| AppError::InternalServerError)?;
+        .map_err(|_e| AppError::InternalServerError)?;
 
     caddy.reload().map_err(|e| AppError::InternalServerError)?;
 

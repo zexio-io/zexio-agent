@@ -107,7 +107,7 @@ pub async fn project_deploy_handler(
         .bind(&project_id)
         .fetch_optional(&state.db)
         .await
-        .map_err(|e| AppError::Database(e.to_string()))?; // Assuming DatabaseError wraps String or similar
+        .map_err(|e| AppError::Database(e))?;
 
     if let Some(enc_env) = encrypted_env {
         let env_bytes = state.crypto.decrypt(&enc_env)

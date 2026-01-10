@@ -46,8 +46,8 @@ impl IntoResponse for AppError {
             AppError::InternalServerError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
-            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, msg.leak()),
-            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, msg.leak()),
+            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, Box::leak(msg.into_boxed_str()) as &str),
+            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, Box::leak(msg.into_boxed_str()) as &str),
         };
 
         let body = Json(json!({
