@@ -40,32 +40,35 @@ impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
         let env = env::var("RUN_MODE").unwrap_or_else(|_| "production".into());
 
+        // Allow simple SERVER_PORT override
+        let port = env::var("SERVER_PORT")
+            .ok()
+            .and_then(|p| p.parse::<u16>().ok())
+            .unwrap_or(3000);
+
         let s = Config::builder()
             // Start with default values
-            .set_default("server.port", 3000)?
+            .set_default("server.port", port as i64)?
             .set_default("server.host", "0.0.0.0")?
             .set_default("server.public_hostname", None::<String>)?
             .set_default("server.public_ip", None::<String>)?
             
             // Default Storage Paths (Production)
             .set_default("storage.projects_dir", "/apps")?
+            .set_default("storage.config_dir", "/etc/vectis")?
             
-            // Default Caddy Config
+            // Default Caddy Settings
             .set_default("caddy.admin_api", "http://localhost:2019")?
-            .set_default("caddy.caddyfile_path", "/etc/caddy/Caddyfile")?
             
-            // Default Secret Paths (Production)
-            .set_default("secrets.master_key_path", "/etc/vectis/master.key")?
+            // Default Secrets Paths
             .set_default("secrets.worker_secret_path", "/etc/vectis/worker.secret")?
+            .set_default("secrets.master_key_path", "/etc/vectis/master.key")?
             
-            // Merge valid configuration files
-            .add_source(File::with_name("config/default").required(false))
-            .add_source(File::with_name(&format!("config/{}", env)).required(false))
-            .add_source(File::with_name("/etc/vectis/config").required(false))
-            // Merge environment variables
-            .add_source(Environment::with_prefix("PLANE").separator("__"))
-            // Config from specific ENV vars for simplicity if user ignores "PLANE__" prefix convention for these two
-            // But let's stick to standard `add_source(Environment)` which maps `PLANE__SERVER__PORT` to `server.port`.
+            // Load config file if exists
+            .add_source(
+                config::File::with_name(&format!("config/{}", env))
+                    .required(false)
+            )
             .build()?;
 
         s.try_deserialize()
