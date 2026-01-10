@@ -38,23 +38,23 @@ pub struct SecretsSettings {
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
-        let env = env::var("RUN_MODE").unwrap_or_else(|_| "development".into());
+        let env = env::var("RUN_MODE").unwrap_or_else(|_| "production".into());
 
         let s = Config::builder()
             // Start with default values
             .set_default("server.port", 3000)?
             .set_default("server.host", "0.0.0.0")?
-            .set_default("server.public_hostname", "worker.local")?
+            .set_default("server.public_hostname", None::<String>)?
             .set_default("server.public_ip", None::<String>)?
             
-            // Default Storage Paths (Custom Structure)
+            // Default Storage Paths (Production)
             .set_default("storage.projects_dir", "/apps")?
             
             // Default Caddy Config
             .set_default("caddy.admin_api", "http://localhost:2019")?
             .set_default("caddy.caddyfile_path", "/etc/caddy/Caddyfile")?
             
-            // Default Secret Paths
+            // Default Secret Paths (Production)
             .set_default("secrets.master_key_path", "/etc/vectis/master.key")?
             .set_default("secrets.worker_secret_path", "/etc/vectis/worker.secret")?
             

@@ -1,4 +1,3 @@
-mod auth;
 mod caddy;
 mod config;
 mod crypto;

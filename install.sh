@@ -86,7 +86,7 @@ fi
 echo "📂 Setting up paths..."
 id -u worker &>/dev/null || useradd -r -s /bin/false worker
 
-mkdir -p /app/vectis/db
+mkdir -p /app/vectis
 mkdir -p /apps
 mkdir -p /etc/vectis
 
