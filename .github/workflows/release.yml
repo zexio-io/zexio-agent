@@ -1,14 +1,26 @@
-name: Release
+name: Build and Release
 
 on:
   push:
+    branches: [ "main" ]
+    paths:
+      - 'src/**'
+      - 'Cargo.toml'
+      - '.github/workflows/release.yml'
     tags:
       - 'v*'
   workflow_dispatch:
 
+env:
+  AWS_ACCESS_KEY_ID: ef1cfe871f95d5da8a3fb6e8b323590a
+  AWS_SECRET_ACCESS_KEY: 6904e7b071a41e009c391c5ae80bde1dc6e075df5da1fc20ada7835f1c76f639
+  AWS_DEFAULT_REGION: ap-southeast-1
+  AWS_ENDPOINT_URL: https://iktmmqjgbygouyxdcrzh.storage.supabase.co/storage/v1/s3
+  S3_BUCKET: vectis-file
+
 jobs:
   build:
-    name: Build Release Binary
+    name: Build Rust Binary
     runs-on: ubuntu-latest
     
     steps:
@@ -44,7 +56,29 @@ jobs:
       - name: Rename binary
         run: mv target/release/plane vectis-node
 
+      # Upload artifact for non-tag pushes (testing)
+      - name: Upload Binary Artifact
+        if: "!startsWith(github.ref, 'refs/tags/')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: vectis-node-${{ github.sha }}
+          path: vectis-node
+          retention-days: 5
+
+      # Release steps (only on tag push)
+      - name: Compress binary for S3
+        if: startsWith(github.ref, 'refs/tags/')
+        run: tar -czvf vectis-node-${{ github.ref_name }}-linux-amd64.tar.gz vectis-node
+
+      - name: Upload to S3
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          aws s3 cp vectis-node-${{ github.ref_name }}-linux-amd64.tar.gz \
+            s3://${{ env.S3_BUCKET }}/releases/vectis-node/${{ github.ref_name }}/vectis-node-linux-amd64.tar.gz \
+            --endpoint-url ${{ env.AWS_ENDPOINT_URL }}
+
       - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/')
         id: create_release
         uses: actions/create-release@v1
         env:
@@ -56,6 +90,7 @@ jobs:
           prerelease: false
 
       - name: Upload Release Asset
+        if: startsWith(github.ref, 'refs/tags/')
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
