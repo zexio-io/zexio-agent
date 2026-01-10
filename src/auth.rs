@@ -21,7 +21,11 @@ where
     type Rejection = AppError;
 
     async fn from_request(req: Request, state: &S) -> Result<Self, Self::Rejection> {
-        let app_state: AppState = state.clone();
+        // Extract AppState using State extractor
+        let State(app_state): State<AppState> = State::from_request(req.clone(), state)
+            .await
+            .map_err(|_| AppError::InternalServerError)?;
+        
         let secret = &app_state.worker_secret;
 
         let (parts, body) = req.into_parts();
