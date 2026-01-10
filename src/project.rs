@@ -365,6 +365,9 @@ pub async fn list_files_handler(
         return Ok(Json(vec![])); 
     }
 
+    Ok(Json(entries))
+}
+
 #[derive(Serialize, sqlx::FromRow)]
 pub struct ProjectSummary {
     id: String,
