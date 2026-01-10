@@ -26,27 +26,6 @@ impl Crypto {
         Ok(Self { key })
     }
 
-    // Encrypts data using AES-256-GCM.
-    // Returns nonce + ciphertext
-    pub fn encrypt(&self, data: &[u8]) -> Result<Vec<u8>> {
-        let cipher = Aes256Gcm::new_from_slice(&self.key)
-            .map_err(|e| anyhow::anyhow!("Invalid key length: {}", e))?;
-        
-        let mut nonce = [0u8; 12];
-        OsRng.fill_bytes(&mut nonce);
-        let nonce_obj = Nonce::from_slice(&nonce);
-
-        let ciphertext = cipher.encrypt(nonce_obj, data)
-            .map_err(|e| anyhow::anyhow!("Encryption failure: {}", e))?;
-        
-        // Prepend nonce to ciphertext
-        let mut result = Vec::with_capacity(nonce.len() + ciphertext.len());
-        result.extend_from_slice(&nonce);
-        result.extend(ciphertext);
-
-        Ok(result)
-    }
-
     pub fn decrypt(&self, data: &[u8]) -> Result<Vec<u8>> {
         if data.len() < 12 {
             anyhow::bail!("Data too short to contain nonce");

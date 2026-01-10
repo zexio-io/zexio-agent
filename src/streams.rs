@@ -1,6 +1,7 @@
 use axum::{
-    extract::{Path, State},
+    extract::{Path, State, Query},
     response::sse::{Event, KeepAlive, Sse},
+    Json,
 };
 use futures::stream::Stream;
 use std::convert::Infallible;
@@ -9,7 +10,62 @@ use tokio::process::Command;
 use std::process::Stdio;
 use tokio_stream::wrappers::LinesStream;
 use tokio_stream::StreamExt;
-use crate::state::AppState;
+use crate::{state::AppState, errors::AppError};
+use serde::{Serialize, Deserialize};
+
+#[derive(Serialize)]
+pub struct LogsResponse {
+    logs: Vec<String>,
+}
+
+#[derive(Deserialize)]
+pub struct LogsQuery {
+    #[serde(default = "default_limit")]
+    limit: usize,
+}
+
+fn default_limit() -> usize {
+    100
+}
+
+// Helper to get last N lines from journalctl (one-time)
+async fn get_journal_logs(unit_name: &str, lines: usize) -> Result<Vec<String>, AppError> {
+    let output = Command::new("journalctl")
+        .arg("-u")
+        .arg(unit_name)
+        .arg("-n")
+        .arg(lines.to_string())
+        .arg("--output=cat")
+        .arg("--no-pager")
+        .output()
+        .await
+        .map_err(|_| AppError::InternalServerError)?;
+
+    let logs_str = String::from_utf8_lossy(&output.stdout);
+    let logs: Vec<String> = logs_str.lines().map(|s| s.to_string()).collect();
+    
+    Ok(logs)
+}
+
+// One-time project logs (JSON)
+pub async fn project_logs_handler(
+    State(_): State<AppState>,
+    Path(project_id): Path<String>,
+    Query(query): Query<LogsQuery>,
+) -> Result<Json<LogsResponse>, AppError> {
+    let unit_name = format!("app@{}.service", project_id);
+    let logs = get_journal_logs(&unit_name, query.limit).await?;
+    Ok(Json(LogsResponse { logs }))
+}
+
+// One-time worker logs (JSON)
+pub async fn worker_logs_handler(
+    State(_): State<AppState>,
+    Query(query): Query<LogsQuery>,
+) -> Result<Json<LogsResponse>, AppError> {
+    let logs = get_journal_logs("worker.service", query.limit).await?;
+    Ok(Json(LogsResponse { logs }))
+}
 
 // Helper to stream logs from journalctl
 // Uses kill_on_drop(true) to ensure the process is killed when the client disconnects.

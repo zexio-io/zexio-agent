@@ -8,8 +8,6 @@ use thiserror::Error;
 
 #[derive(Error, Debug)]
 pub enum AppError {
-    #[error("Database error: {0}")]
-    Database(String),
     #[error("Configuration error: {0}")]
     Config(#[from] config::ConfigError),
     #[error("IO error: {0}")]
@@ -18,8 +16,6 @@ pub enum AppError {
     Anyhow(#[from] anyhow::Error),
     #[error("Internal Server Error")]
     InternalServerError,
-    #[error("Unauthorized: {0}")]
-    Unauthorized(String),
     #[error("Bad Request: {0}")]
     BadRequest(String),
 }
@@ -27,10 +23,6 @@ pub enum AppError {
 impl IntoResponse for AppError {
     fn into_response(self) -> Response {
         let (status, message) = match self {
-            AppError::Database(msg) => {
-                tracing::error!("Database error: {}", msg);
-                (StatusCode::INTERNAL_SERVER_ERROR, "Internal Server Error")
-            }
             AppError::Config(e) => {
                 tracing::error!("Config error: {:?}", e);
                 (StatusCode::INTERNAL_SERVER_ERROR, "Configuration Error")
@@ -46,7 +38,6 @@ impl IntoResponse for AppError {
             AppError::InternalServerError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
-            AppError::Unauthorized(msg) => (StatusCode::UNAUTHORIZED, Box::leak(msg.into_boxed_str()) as &str),
             AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, Box::leak(msg.into_boxed_str()) as &str),
         };
 

@@ -3,45 +3,12 @@ use axum::{
     Router,
     extract::{State, Path},
 };
-use crate::{state::AppState, config::Settings, project, deploy, services, monitor, middleware, errors::AppError};
+use crate::{state::AppState, config::Settings, project, deploy, services, monitor, middleware, streams, errors::AppError};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tracing::info;
 use axum::middleware as axum_middleware;
 
-// Helper to get logs
-async fn get_journal_logs(unit_name: &str) -> Result<String, AppError> {
-    let output = std::process::Command::new("journalctl")
-        .arg("-u")
-        .arg(unit_name)
-        .arg("-n")
-        .arg("100")
-        .arg("--no-pager")
-        .output()
-        .map_err(|_| AppError::InternalServerError)?;
-
-    let logs = String::from_utf8_lossy(&output.stdout).to_string();
-    if logs.is_empty() {
-        return Ok(format!("No logs found for unit: {}", unit_name));
-    }
-    Ok(logs)
-}
-
-// Project Logs
-pub async fn logs_handler(
-    State(_state): State<AppState>,
-    Path(project_id): Path<String>,
-) -> Result<String, AppError> {
-    let unit_name = format!("app@{}.service", project_id);
-    get_journal_logs(&unit_name).await
-}
-
-// Worker Logs
-pub async fn worker_logs_handler(
-    State(_state): State<AppState>,
-) -> Result<String, AppError> {
-    get_journal_logs("worker.service").await
-}
 
 pub async fn start(settings: Settings) -> anyhow::Result<()> {
     // Application state (no database needed!)
@@ -58,7 +25,9 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
         .route("/projects/:id/domains", post(project::add_domain_handler).delete(project::remove_domain_handler))
         .route("/projects/:id/files", get(project::list_files_handler))
         .route("/projects/:id/stats", get(monitor::project_monitor_handler))
-        .route("/projects/:id/logs", get(logs_handler))
+        .route("/projects/:id/stats/stream", get(monitor::project_monitor_stream))  // SSE!
+        .route("/projects/:id/logs", get(streams::project_logs_handler))  // JSON (one-time)
+        .route("/projects/:id/logs/stream", get(streams::project_logs_stream))  // SSE!
         .route("/projects/:id/deploy", post(deploy::project_deploy_handler))
         .route("/projects/:id/webhook", post(deploy::project_deploy_handler))
         .route("/services/install", post(services::install_service_handler))
@@ -71,7 +40,9 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
     let public_routes = Router::new()
         .route("/health", get(|| async { "OK" }))
         .route("/stats", get(monitor::global_stats_handler))
-        .route("/system/logs", get(worker_logs_handler));
+        .route("/stats/stream", get(monitor::global_stats_stream))  // SSE!
+        .route("/system/logs", get(streams::worker_logs_handler))   // JSON (one-time)
+        .route("/system/logs/stream", get(streams::worker_logs_stream));  // SSE!
 
     // Combine routes
     let app = public_routes
