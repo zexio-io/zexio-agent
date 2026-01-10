@@ -13,12 +13,12 @@ pub async fn worker_auth_middleware(
     request: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
-    let headers = request.headers();
-    
-    // Get signature from header
-    let signature = headers
+    // Get signature from header before moving request
+    let signature = request
+        .headers()
         .get("X-Signature")
         .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
     // Get body for verification
@@ -28,7 +28,7 @@ pub async fn worker_auth_middleware(
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
     // Verify signature
-    if !Crypto::verify_signature(&state.worker_secret, &bytes, signature) {
+    if !Crypto::verify_signature(&state.worker_secret, &bytes, &signature) {
         warn!("Invalid worker signature");
         return Err(StatusCode::UNAUTHORIZED);
     }

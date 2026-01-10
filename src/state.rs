@@ -31,10 +31,3 @@ impl AppState {
         })
     }
 }
-
-// Implement FromRef so AppState can be extracted in middleware
-impl axum::extract::FromRef<AppState> for AppState {
-    fn from_ref(state: &AppState) -> Self {
-        state.clone()
-    }
-}
