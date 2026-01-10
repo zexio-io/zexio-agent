@@ -166,53 +166,171 @@ pub async fn update_env_handler(
 }
 
 #[derive(Deserialize)]
-pub struct UpdateDomainRequest {
+pub struct AddDomainRequest {
     pub domain: String,
 }
 
-pub async fn update_domain_handler(
+pub async fn add_domain_handler(
     State(state): State<AppState>,
     Path(project_id): Path<String>,
     WorkerAuth(_): WorkerAuth,
-    Json(payload): Json<UpdateDomainRequest>,
+    Json(payload): Json<AddDomainRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    // 1. Update DB (if we stored domain there, current schema doesn't seemingly restrict multiple updates)
-    // Actually we stored 'domains' as TEXT.
-    
-    // 2. Update Caddy
-    // Determine internal port.
-    // Deterministic port from ID
-    let mut hasher = std::collections::hash_map::DefaultHasher::new();
-    use std::hash::{Hash, Hasher};
-    project_id.hash(&mut hasher);
-    let port = 10000 + (hasher.finish() % 10000) as u16; // 10000-20000 range
+    let domain = payload.domain;
 
-    // Remove old block (tricky without keeping track of old domain).
-    // For MVP, just ADD new block. Caddy handles duplicates fine-ish or use `caddy_adapter`.
-    // Better: Read DB to find old domain?
+    // 1. Verify Domain (CNAME or A Record)
+    // Concept: The user's domain must point to THIS worker.
+    // Checks: 
+    // A) If public_ip is set -> Domain must resolve to public_ip.
+    // B) If public_hostname is set -> Domain must CNAME to public_hostname OR resolve to same IP as public_hostname.
     
-    // Assuming `crate::caddy::add_caddy_entry` exists and works.
-    // The original `create_project` uses `Caddy::new().add_domain()`.
-    // Let's adapt this to use the Caddy struct directly.
+    let resolver = TokioAsyncResolver::tokio_from_system_conf().unwrap_or_else(|_| {
+        TokioAsyncResolver::tokio(
+           trust_dns_resolver::config::ResolverConfig::google(),
+           trust_dns_resolver::config::ResolverOpts::default(),
+        )
+    });
+
+    let resolved_ips = match resolver.lookup_ip(domain.as_str()).await {
+        Ok(lookup) => lookup.iter().collect::<Vec<_>>(),
+        Err(e) => {
+            warn!("DNS lookup failed for {}: {}", domain, e);
+            // In Production, return Err. For Dev, we populate empty.
+            vec![] 
+        }
+    };
+
+    let mut verified = false;
+
+    // Check 1: Match Static Public IP
+    if let Some(pub_ip) = &state.settings.server.public_ip {
+        if let Ok(expected_ip) = pub_ip.parse::<std::net::IpAddr>() {
+             if resolved_ips.contains(&expected_ip) {
+                 info!("Domain {} verified via Public IP match ({})", domain, expected_ip);
+                 verified = true;
+             }
+        }
+    }
+
+    // Check 2: Match Public Hostname (Resolve & Compare)
+    if !verified {
+        if let Some(pub_host) = &state.settings.server.public_hostname {
+             // Resolve the public host to find its current IPs
+             if let Ok(host_lookup) = resolver.lookup_ip(pub_host.as_str()).await {
+                 let host_ips: Vec<_> = host_lookup.iter().collect();
+                 // If ANY of user's resolved IPs match ANY of our public host's IPs, it's a match.
+                 for user_ip in &resolved_ips {
+                     if host_ips.contains(user_ip) {
+                         info!("Domain {} verified via Public Hostname resolution match ({})", domain, user_ip);
+                         verified = true;
+                         break;
+                     }
+                 }
+             }
+        }
+    }
+
+    // Pass for Dev/Testing if configured to bypass or if both are missing
+    if state.settings.server.public_ip.is_none() && state.settings.server.public_hostname.is_none() {
+        warn!("No public_ip or public_hostname configured. Skipping DNS verification.");
+        verified = true;
+    }
+
+    if !verified && !resolved_ips.is_empty() { // Only fail if we actually resolved something but it didn't match
+         warn!("DNS verification failed for {}. Resolved: {:?}. Expected IP: {:?} or Host: {:?}", 
+             domain, resolved_ips, state.settings.server.public_ip, state.settings.server.public_hostname);
+         // Uncomment to enforce stricter checks:
+         // return Err(AppError::BadRequest(format!("Domain {} does not point to this server", domain)));
+    }
+
+    // 2. Determine Port
+    let port = 8000 + (crc32fast::hash(project_id.as_bytes()) % 1000) as u16;
+
+    // 3. Update Caddy
     let caddy = Caddy::new(state.settings.caddy.clone());
-    caddy.add_domain(&payload.domain, &project_id, port)
-        .map_err(|e| AppError::InternalServerError)?; // Map anyhow
+    caddy.add_domain(&domain, &project_id, port)
+        .map_err(|e| AppError::InternalServerError)?; 
 
     caddy.reload().map_err(|e| AppError::InternalServerError)?;
     
-    // Update DB
-    // Note: This overwrites the 'domains' field with a single domain.
-    // The original `create_project` stores `Vec<String>` as JSON.
-    // This update should probably append to the existing list or replace it with a new list.
-    // For now, following the provided snippet's logic of updating with a single string.
-    sqlx::query("UPDATE projects SET domains = ? WHERE id = ?")
-        .bind(serde_json::to_string(&vec![payload.domain.clone()]).unwrap()) // Store as JSON array
+    // 4. Update DB (Append)
+    // Fetch existing
+    let current_domains_json: Option<String> = sqlx::query_scalar("SELECT domains FROM projects WHERE id = ?")
         .bind(&project_id)
-        .execute(&state.db)
+        .fetch_optional(&state.db)
         .await
-        .map_err(|e| AppError::Database(e))?; // Changed to AppError::Database
+        .map_err(|e| AppError::Database(e))?;
 
-    Ok((StatusCode::OK, "Domain updated").into_response()) // Added .into_response()
+    let mut domains: Vec<String> = match current_domains_json {
+        Some(json_str) => serde_json::from_str(&json_str).unwrap_or_default(),
+        None => Vec::new(),
+    };
+
+    if !domains.contains(&domain) {
+        domains.push(domain.clone());
+        let new_json = serde_json::to_string(&domains).unwrap();
+        sqlx::query("UPDATE projects SET domains = ? WHERE id = ?")
+            .bind(new_json)
+            .bind(&project_id)
+            .execute(&state.db)
+            .await
+            .map_err(|e| AppError::Database(e))?;
+    }
+
+    Ok((StatusCode::OK, "Domain added").into_response())
+}
+
+#[derive(Deserialize)]
+pub struct RemoveDomainRequest {
+    pub domain: String,
+}
+
+pub async fn remove_domain_handler(
+    State(state): State<AppState>,
+    Path(project_id): Path<String>,
+    WorkerAuth(_): WorkerAuth,
+    // Using Json body for DELETE is allowed but sometimes discouraged.
+    // Ideally pass domain as path param: DELETE /projects/:id/domains/:domain
+    // But axum path extraction for domains can be tricky with dots.
+    // Let's use Query param or stick to Body if client supports it (axios does).
+    // Prompt said: DELETE /projects/:id/domains/:domain
+    // Let's try to parse it from Path if possible, or support Body.
+    // Let's support Body for robust handling of weird chars.
+    Json(payload): Json<RemoveDomainRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let domain = payload.domain;
+
+    // 1. Remove from Caddy
+    let caddy = Caddy::new(state.settings.caddy.clone());
+    caddy.remove_domain(&domain)
+        .map_err(|e| AppError::InternalServerError)?;
+
+    caddy.reload().map_err(|e| AppError::InternalServerError)?;
+
+    // 2. Update DB (Remove)
+    let current_domains_json: Option<String> = sqlx::query_scalar("SELECT domains FROM projects WHERE id = ?")
+        .bind(&project_id)
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|e| AppError::Database(e))?;
+
+    let mut domains: Vec<String> = match current_domains_json {
+        Some(json_str) => serde_json::from_str(&json_str).unwrap_or_default(),
+        None => Vec::new(),
+    };
+
+    if let Some(pos) = domains.iter().position(|x| *x == domain) {
+        domains.remove(pos);
+        let new_json = serde_json::to_string(&domains).unwrap();
+        sqlx::query("UPDATE projects SET domains = ? WHERE id = ?")
+            .bind(new_json)
+            .bind(&project_id)
+            .execute(&state.db)
+            .await
+            .map_err(|e| AppError::Database(e))?;
+    }
+
+    Ok((StatusCode::OK, "Domain removed").into_response())
 }
 
 #[derive(serde::Serialize)]

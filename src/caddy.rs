@@ -3,7 +3,7 @@ use anyhow::{Context, Result};
 use std::process::Command;
 use std::fs::{self, OpenOptions};
 use std::io::Write;
-use tracing::info;
+use tracing::{info, warn};
 
 pub struct Caddy {
     settings: CaddySettings,
@@ -14,7 +14,7 @@ impl Caddy {
         Self { settings }
     }
 
-    pub fn add_domain(&self, domain: &str, project_id: &str, port: u16) -> Result<()> {
+    pub fn add_domain(&self, domain: &str, _project_id: &str, port: u16) -> Result<()> {
         let caddyfile_path = &self.settings.caddyfile_path;
         
         // Ensure file exists
@@ -27,8 +27,6 @@ impl Caddy {
             domain, port
         );
 
-        // Simple check to avoid duplicate entries (naive, but works for MVP)
-        // Ideally we should parse Caddyfile or use JSON API
         let current_content = fs::read_to_string(caddyfile_path)?;
         if current_content.contains(&format!("{} {{", domain)) {
             info!("Domain {} already exists in Caddyfile, skipping", domain);
@@ -42,6 +40,38 @@ impl Caddy {
 
         file.write_all(config_block.as_bytes())
             .context("Failed to write to Caddyfile")?;
+
+        Ok(())
+    }
+
+    pub fn remove_domain(&self, domain: &str) -> Result<()> {
+        let caddyfile_path = &self.settings.caddyfile_path;
+        if !std::path::Path::new(caddyfile_path).exists() {
+            return Ok(());
+        }
+
+        let current_content = fs::read_to_string(caddyfile_path)?;
+        
+        // Naive parser: find domain block and remove it
+        // Format assumption: "domain.com {" ... "}"
+        // This is fragile but works for the predictable format we generate.
+        let start_marker = format!("{} {{", domain);
+        if let Some(start_idx) = current_content.find(&start_marker) {
+            // Find the closing brace for this block
+            // Since our block is simple: "\n    reverse_proxy localhost:PORT\n}\n"
+            // We search for the next "}\n" after start_idx
+            if let Some(end_idx_offset) = current_content[start_idx..].find("\n}\n") {
+                 let end_idx = start_idx + end_idx_offset + 3; // +3 for "\n}\n" length
+                 
+                 let new_content = format!("{}{}", &current_content[..start_idx], &current_content[end_idx..]);
+                 fs::write(caddyfile_path, new_content.trim())?;
+                 info!("Removed domain {} from Caddyfile", domain);
+            } else {
+                 warn!("Could not find closing brace for domain {}, skipping removal", domain);
+            }
+        } else {
+             info!("Domain {} not found in Caddyfile", domain);
+        }
 
         Ok(())
     }

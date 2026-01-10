@@ -13,7 +13,9 @@ pub struct Settings {
 #[derive(Debug, Deserialize, Clone)]
 pub struct ServerSettings {
     pub port: u16,
-    pub host: String,
+    pub host: String, // Internal bind host
+    pub public_hostname: Option<String>,
+    pub public_ip: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -43,6 +45,8 @@ impl Settings {
             // Start with default values
             .set_default("server.port", 3000)?
             .set_default("server.host", "0.0.0.0")?
+            .set_default("server.public_hostname", "worker.local")?
+            .set_default("server.public_ip", None::<String>)?
             
             // Default Storage Paths (Custom Structure)
             .set_default("storage.database_url", "sqlite:///app/vectis/db/plane.db")?

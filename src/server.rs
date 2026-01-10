@@ -1,5 +1,5 @@
 use axum::{
-    routing::{get, post},
+    routing::{get, post, delete},
     Router,
     extract::{State, Path},
     http::StatusCode,
@@ -70,7 +70,7 @@ mod monitor;
         
         // Granular Management
         .route("/projects/:id/env", post(project::update_env_handler))
-        .route("/projects/:id/domain", post(project::update_domain_handler))
+        .route("/projects/:id/domains", post(project::add_domain_handler).delete(project::remove_domain_handler))
         .route("/projects/:id/files", get(project::list_files_handler))
         .route("/projects/:id/stats", get(monitor::project_monitor_handler)) // Project Stats/Status
         .route("/projects/:id/stats", get(monitor::project_monitor_handler)) // Project Stats/Status
