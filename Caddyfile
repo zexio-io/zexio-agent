@@ -1,0 +1,13 @@
+# Caddyfile for Plane Worker
+
+# Default listener (optional, for admin or fallback)
+:80 {
+    respond "Plane Worker Gateway"
+}
+
+# Plane Admin API (if exposed via Caddy, though usually internal)
+# worker.yourinfra.com {
+#     reverse_proxy localhost:3000
+# }
+
+# Projects will be appended below by the worker

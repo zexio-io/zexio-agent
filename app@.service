@@ -1,0 +1,17 @@
+[Unit]
+Description=App %i
+After=network.target
+
+[Service]
+Type=simple
+User=worker
+Group=worker
+# Assuming apps are stored in /var/www/%i
+WorkingDirectory=/var/www/%i
+# Assuming the app binary is named 'app'
+ExecStart=/var/www/%i/app
+Restart=always
+EnvironmentFile=/var/www/%i/.env
+
+[Install]
+WantedBy=multi-user.target
