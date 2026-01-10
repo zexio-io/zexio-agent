@@ -5,7 +5,7 @@ use axum::{
 };
 use serde::Deserialize;
 use std::process::Command;
-use crate::{state::AppState, errors::AppError, auth::WorkerAuth};
+use crate::{state::AppState, errors::AppError};
 use tracing::{info, error};
 
 #[derive(Deserialize)]

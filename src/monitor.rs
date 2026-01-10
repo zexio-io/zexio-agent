@@ -5,7 +5,7 @@ use axum::{
 };
 use serde::Serialize;
 use sysinfo::{System, RefreshKind, CpuRefreshKind, MemoryRefreshKind};
-use crate::{state::AppState, auth::WorkerAuth, errors::AppError};
+use crate::{state::AppState, errors::AppError};
 use std::process::Command;
 use std::time::Duration;
 use futures::stream::{self, Stream};

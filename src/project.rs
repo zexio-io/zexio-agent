@@ -4,7 +4,7 @@ use axum::{
     response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
-use crate::{state::AppState, errors::AppError, auth::WorkerAuth};
+use crate::{state::AppState, errors::AppError};
 use crate::caddy::Caddy;
 use crate::storage::ProjectConfig;
 use trust_dns_resolver::TokioAsyncResolver;
