@@ -102,14 +102,15 @@ pub async fn project_deploy_handler(
         let _ = Command::new("chmod").arg("+x").arg(&app_path).output();
     }
 
-    // 3. Decrypt Environment
-    let encrypted_env: Option<Vec<u8>> = sqlx::query_scalar("SELECT encrypted_env FROM projects WHERE id = ?")
-        .bind(&project_id)
-        .fetch_optional(&state.db)
-        .await
-        .map_err(|e| AppError::Database(e))?;
+    // 3. Decrypt Environment from JSON config
+    let config = state.store.read(&project_id).await
+        .map_err(|_| AppError::BadRequest("Project not found".into()))?;
 
-    if let Some(enc_env) = encrypted_env {
+    if !config.encrypted_env.is_empty() {
+        // Decode hex string to bytes
+        let enc_env = hex::decode(&config.encrypted_env)
+            .map_err(|_| AppError::InternalServerError)?;
+        
         let env_bytes = state.crypto.decrypt(&enc_env)
             .map_err(|_| AppError::InternalServerError)?; 
         let env_str = String::from_utf8(env_bytes)

@@ -5,7 +5,7 @@ use axum::{
     http::StatusCode,
     response::IntoResponse,
 };
-use crate::{state::AppState, config::Settings, db, project, deploy, services, errors::AppError};
+use crate::{state::AppState, config::Settings, project, deploy, services, errors::AppError};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tracing::info;
@@ -45,11 +45,8 @@ pub async fn worker_logs_handler(
 }
 
 pub async fn start(settings: Settings) -> anyhow::Result<()> {
-    // db connection
-    let pool = db::init_pool(&settings.storage.database_url).await?;
-
-    // Application state
-    let state = AppState::new(pool, settings.clone())?;
+    // Application state (no database needed!)
+    let state = AppState::new(settings.clone())?;
 
 
 

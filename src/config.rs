@@ -20,7 +20,6 @@ pub struct ServerSettings {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct StorageSettings {
-    pub database_url: String,
     pub projects_dir: String,
 }
 
@@ -49,7 +48,6 @@ impl Settings {
             .set_default("server.public_ip", None::<String>)?
             
             // Default Storage Paths (Custom Structure)
-            .set_default("storage.database_url", "sqlite:///app/vectis/db/plane.db")?
             .set_default("storage.projects_dir", "/apps")?
             
             // Default Caddy Config

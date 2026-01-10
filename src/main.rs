@@ -2,7 +2,7 @@ mod auth;
 mod caddy;
 mod config;
 mod crypto;
-mod db;
+mod storage;
 mod deploy;
 mod project;
 mod services;
