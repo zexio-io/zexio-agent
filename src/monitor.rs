@@ -32,19 +32,19 @@ pub async fn global_stats_handler(
             .with_memory(MemoryRefreshKind::everything()),
     );
 
-    sys.refresh_cpu_all();
+    sys.refresh_cpu();
     std::thread::sleep(std::time::Duration::from_millis(200));
-    sys.refresh_cpu_all();
+    sys.refresh_cpu();
     sys.refresh_memory();
 
-    let cpu_usage = sys.global_cpu_usage();
+    let cpu_usage = sys.global_cpu_info().cpu_usage();
     let memory_used = sys.used_memory();
     let memory_total = sys.total_memory();
     let memory_percent = (memory_used as f32 / memory_total as f32) * 100.0;
 
     // Get disk stats (root partition)
-    sys.refresh_disks_list();
-    let (disk_used, disk_total) = sys.disks()
+    let disks = sysinfo::Disks::new_with_refreshed_list();
+    let (disk_used, disk_total) = disks
         .iter()
         .find(|disk| disk.mount_point().to_str() == Some("/"))
         .map(|disk| {
@@ -84,19 +84,19 @@ pub async fn global_stats_stream(
                     .with_memory(MemoryRefreshKind::everything()),
             );
 
-            sys.refresh_cpu_all();
+            sys.refresh_cpu();
             tokio::time::sleep(Duration::from_millis(200)).await;
-            sys.refresh_cpu_all();
+            sys.refresh_cpu();
             sys.refresh_memory();
 
-            let cpu_usage = sys.global_cpu_usage();
+            let cpu_usage = sys.global_cpu_info().cpu_usage();
             let memory_used = sys.used_memory();
             let memory_total = sys.total_memory();
             let memory_percent = (memory_used as f32 / memory_total as f32) * 100.0;
 
             // Get disk stats (root partition)
-            sys.refresh_disks_list();
-            let (disk_used, disk_total) = sys.disks()
+            let disks = sysinfo::Disks::new_with_refreshed_list();
+            let (disk_used, disk_total) = disks
                 .iter()
                 .find(|disk| disk.mount_point().to_str() == Some("/"))
                 .map(|disk| {

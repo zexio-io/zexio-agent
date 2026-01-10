@@ -3,7 +3,7 @@ use axum::{
     Router,
     extract::{State, Path},
 };
-use crate::{state::AppState, config::Settings, project, deploy, services, monitor, middleware, streams, errors::AppError};
+use crate::{state::AppState, config::Settings, project, deploy, services, monitor, middleware, streams};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tracing::info;
