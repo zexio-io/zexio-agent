@@ -21,7 +21,6 @@ pub struct CreateProjectRequest {
 
 pub async fn create_project(
     State(state): State<AppState>,
-    WorkerAuth(_): WorkerAuth,
     Json(req): Json<CreateProjectRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     info!("Creating project: {}", req.project_id);

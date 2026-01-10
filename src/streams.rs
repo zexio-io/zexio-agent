@@ -9,7 +9,7 @@ use tokio::process::Command;
 use std::process::Stdio;
 use tokio_stream::wrappers::LinesStream;
 use tokio_stream::StreamExt;
-use crate::{state::AppState, errors::AppError};
+use crate::state::AppState;
 
 // Helper to stream logs from journalctl
 // Uses kill_on_drop(true) to ensure the process is killed when the client disconnects.

@@ -2,7 +2,6 @@ use axum::{
     extract::{Path, State},
     Json,
     response::sse::{Event, KeepAlive, Sse},
-    http::StatusCode,
 };
 use serde::Serialize;
 use sysinfo::{System, RefreshKind, CpuRefreshKind, MemoryRefreshKind};

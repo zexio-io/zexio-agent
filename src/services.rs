@@ -4,7 +4,7 @@ use axum::{
     http::StatusCode,
 };
 use serde::Deserialize;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use crate::{state::AppState, errors::AppError, auth::WorkerAuth};
 use tracing::{info, error};
 

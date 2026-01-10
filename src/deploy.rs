@@ -5,7 +5,6 @@ use axum::{
 };
 use serde::Deserialize;
 use std::process::Command;
-use std::io::Write; // For file writing if needed
 use crate::{state::AppState, errors::AppError, auth::WorkerAuth};
 use tracing::{info, error};
 

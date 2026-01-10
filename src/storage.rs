@@ -13,6 +13,7 @@ pub struct ProjectConfig {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
+#[derive(Clone)]
 pub struct ProjectStore {
     base_dir: PathBuf,
 }

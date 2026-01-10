@@ -7,6 +7,7 @@ use rand::{rngs::OsRng, RngCore};
 use sha2::Sha256;
 use anyhow::{Context, Result};
 
+#[derive(Clone)]
 pub struct Crypto {
     key: Vec<u8>,
 }

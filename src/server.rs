@@ -2,8 +2,6 @@ use axum::{
     routing::{get, post, delete},
     Router,
     extract::{State, Path},
-    http::StatusCode,
-    response::IntoResponse,
 };
 use crate::{state::AppState, config::Settings, project, deploy, services, monitor, errors::AppError};
 use std::net::SocketAddr;
