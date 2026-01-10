@@ -153,12 +153,40 @@ pub async fn project_monitor_handler(
         .output()
         .map_err(|_| AppError::InternalServerError)?;
 
-        .and_then(|p| p.parse::<u32>().ok());
+    let status = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    let active = status == "active";
 
-    Ok(Json(ProjectStatus {
-        id: project_id,
-        active,
-        pid,
-        status_line: status_str.lines().next().unwrap_or("Unknown").to_string(),
-    }))
+    Ok(Json(ProjectStatus { status, active }))
+}
+
+// SSE endpoint (real-time updates every 3 seconds)
+pub async fn project_monitor_stream(
+    State(_state): State<AppState>,
+    Path(project_id): Path<String>,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
+    let stream = async_stream::stream! {
+        let unit_name = format!("app@{}.service", project_id);
+        
+        loop {
+            let output = Command::new("systemctl")
+                .arg("is-active")
+                .arg(&unit_name)
+                .output();
+
+            if let Ok(output) = output {
+                let status = String::from_utf8_lossy(&output.stdout).trim().to_string();
+                let active = status == "active";
+
+                let project_status = ProjectStatus { status, active };
+
+                if let Ok(json) = serde_json::to_string(&project_status) {
+                    yield Ok(Event::default().data(json));
+                }
+            }
+
+            tokio::time::sleep(Duration::from_secs(3)).await;
+        }
+    };
+
+    Sse::new(stream).keep_alive(KeepAlive::default())
 }

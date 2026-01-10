@@ -3,7 +3,6 @@ use aes_gcm::{
     Aes256Gcm, Nonce,
 };
 use hmac::{Hmac, Mac};
-use rand::{rngs::OsRng, RngCore};
 use sha2::Sha256;
 use anyhow::{Context, Result};
 
