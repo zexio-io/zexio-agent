@@ -17,7 +17,7 @@ pub struct DeployProjectRequest {
 pub async fn project_deploy_handler(
     State(state): State<AppState>,
     Path(project_id): Path<String>,
-    WorkerAuth(bytes): WorkerAuth,
+    bytes: Bytes,
 ) -> Result<impl IntoResponse, AppError> {
     // Parse Payload from Bytes (since WorkerAuth consumed body)
     let req: DeployProjectRequest = serde_json::from_slice(&bytes)

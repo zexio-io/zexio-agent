@@ -15,7 +15,6 @@ pub struct InstallServiceRequest {
 
 pub async fn install_service_handler(
     State(_state): State<AppState>,
-    WorkerAuth(_): WorkerAuth, // Must be admin
     Json(payload): Json<InstallServiceRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     

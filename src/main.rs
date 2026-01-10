@@ -9,6 +9,7 @@ mod services;
 mod monitor;
 mod streams;
 mod errors;
+mod middleware;
 mod server;
 mod state;
 

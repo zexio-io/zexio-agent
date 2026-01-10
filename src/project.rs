@@ -67,7 +67,6 @@ pub struct UpdateEnvRequest {
 pub async fn update_env_handler(
     State(state): State<AppState>,
     Path(project_id): Path<String>,
-    WorkerAuth(_): WorkerAuth,
     Json(payload): Json<UpdateEnvRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     info!("Updating environment for project: {}", project_id);
@@ -94,7 +93,6 @@ pub struct DomainRequest {
 pub async fn add_domain_handler(
     State(state): State<AppState>,
     Path(project_id): Path<String>,
-    WorkerAuth(_): WorkerAuth,
     Json(payload): Json<DomainRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let domain = payload.domain;
@@ -180,7 +178,6 @@ pub async fn add_domain_handler(
 pub async fn remove_domain_handler(
     State(state): State<AppState>,
     Path(project_id): Path<String>,
-    WorkerAuth(_): WorkerAuth,
     Json(payload): Json<DomainRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let domain = payload.domain;
@@ -214,7 +211,6 @@ pub struct FileInfo {
 pub async fn list_files_handler(
     State(state): State<AppState>,
     Path(project_id): Path<String>,
-    WorkerAuth(_): WorkerAuth,
 ) -> Result<Json<Vec<FileInfo>>, AppError> {
     
     let base_path = format!("{}/{}/bundle", state.settings.storage.projects_dir, project_id);
@@ -247,7 +243,6 @@ pub struct ProjectSummary {
 
 pub async fn list_projects_handler(
     State(state): State<AppState>,
-    WorkerAuth(_): WorkerAuth,
 ) -> Result<Json<Vec<ProjectSummary>>, AppError> {
     let configs = state.store.list().await
         .map_err(|_| AppError::InternalServerError)?;
@@ -264,7 +259,6 @@ pub async fn list_projects_handler(
 pub async fn delete_project_handler(
     State(state): State<AppState>,
     Path(project_id): Path<String>,
-    WorkerAuth(_): WorkerAuth,
 ) -> Result<impl IntoResponse, AppError> {
     info!("Deleting project: {}", project_id);
 

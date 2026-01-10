@@ -3,10 +3,11 @@ use axum::{
     Router,
     extract::{State, Path},
 };
-use crate::{state::AppState, config::Settings, project, deploy, services, monitor, errors::AppError};
+use crate::{state::AppState, config::Settings, project, deploy, services, monitor, middleware, errors::AppError};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
 use tracing::info;
+use axum::middleware as axum_middleware;
 
 // Helper to get logs
 async fn get_journal_logs(unit_name: &str) -> Result<String, AppError> {
@@ -46,39 +47,35 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
     // Application state (no database needed!)
     let state = AppState::new(settings.clone())?;
 
-
-
-    // Router
-    let app = Router::new()
-        // Public / Internal endpoints
-        .route("/stats", get(monitor::global_stats_handler)) // Global System Stats
-        .route("/system/logs", get(worker_logs_handler))     // Worker System Logs
-        
-        // Admin endpoints (Worker Secret)
+    // Protected routes (require worker authentication)
+    let protected_routes = Router::new()
         .route("/projects", 
             post(project::create_project)
             .get(project::list_projects_handler)
         )
         .route("/projects/:id", delete(project::delete_project_handler))
-        
-        // Granular Management
         .route("/projects/:id/env", post(project::update_env_handler))
         .route("/projects/:id/domains", post(project::add_domain_handler).delete(project::remove_domain_handler))
         .route("/projects/:id/files", get(project::list_files_handler))
-        .route("/projects/:id/stats", get(monitor::project_monitor_handler)) // Project Stats/Status
-        .route("/projects/:id/stats", get(monitor::project_monitor_handler)) // Project Stats/Status
-        .route("/projects/:id/logs", get(logs_handler))                      // Project Logs
-        .route("/projects/:id/deploy", post(deploy::project_deploy_handler)) // Manual Deploy
-        .route("/projects/:id/webhook", post(deploy::project_deploy_handler)) // Webhook Deploy
-        
-        
+        .route("/projects/:id/stats", get(monitor::project_monitor_handler))
+        .route("/projects/:id/logs", get(logs_handler))
+        .route("/projects/:id/deploy", post(deploy::project_deploy_handler))
+        .route("/projects/:id/webhook", post(deploy::project_deploy_handler))
         .route("/services/install", post(services::install_service_handler))
-        // Webhook endpoints (Project Secret)
-        // Note: The `deploy_webhook_handler` extractor will handle the per-project secret verification
-        // Legacy Webhook - maybe deprecate or update? 
-        // User didn't ask to remove it, but likely we can remove since we have the explicit deploy endpoint now.
-        // Let's Remove specific webhook route to simplify, user uses Dashboard mainly.
-        // .route("/webhook/deploy/:project_id", post(deploy::webhook_deploy_handler))
+        .layer(axum_middleware::from_fn_with_state(
+            state.clone(),
+            middleware::worker_auth_middleware
+        ));
+
+    // Public routes (no auth required)
+    let public_routes = Router::new()
+        .route("/health", get(|| async { "OK" }))
+        .route("/stats", get(monitor::global_stats_handler))
+        .route("/system/logs", get(worker_logs_handler));
+
+    // Combine routes
+    let app = public_routes
+        .merge(protected_routes)
         .with_state(state);
 
     let addr: SocketAddr = format!("{}:{}", settings.server.host, settings.server.port).parse()?;

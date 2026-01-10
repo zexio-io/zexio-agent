@@ -63,7 +63,6 @@ pub struct ProjectStatus {
 pub async fn project_monitor_handler(
     State(_state): State<AppState>,
     Path(project_id): Path<String>,
-    WorkerAuth(_): WorkerAuth,
 ) -> Result<Json<ProjectStatus>, AppError> {
     // Check systemd status
     // systemctl is-active app@{id}
