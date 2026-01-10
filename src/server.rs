@@ -73,9 +73,8 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
         .route("/projects/:id/deploy", post(deploy::project_deploy_handler)) // Manual Deploy
         .route("/projects/:id/webhook", post(deploy::project_deploy_handler)) // Webhook Deploy
         
-        .route("/services", get(services::list_services_handler))
+        
         .route("/services/install", post(services::install_service_handler))
-        .route("/services/remove", post(services::remove_service_handler))
         // Webhook endpoints (Project Secret)
         // Note: The `deploy_webhook_handler` extractor will handle the per-project secret verification
         // Legacy Webhook - maybe deprecate or update? 

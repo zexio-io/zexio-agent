@@ -4,7 +4,6 @@ use axum::{
     http::StatusCode,
 };
 use serde::Deserialize;
-use std::fs;
 use std::process::Command;
 use std::io::Write; // For file writing if needed
 use crate::{state::AppState, errors::AppError, auth::WorkerAuth};
@@ -59,7 +58,7 @@ pub async fn project_deploy_handler(
             .map_err(|_e| AppError::InternalServerError)?;
 
         let save_path = format!("{}/{}", project_dir, filename);
-        tokio::fs::write(&save_path, &bytes).await.map_err(|e| AppError::InternalServerError)?;
+        tokio::fs::write(&save_path, &bytes).await.map_err(|_e| AppError::InternalServerError)?;
         
         artifact_name = filename;
     } else if let Some(file) = req.file {
