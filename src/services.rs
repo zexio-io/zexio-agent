@@ -66,7 +66,7 @@ pub async fn install_service_handler(
     // Execute
     // Note: We use `sudo -E` assuming the worker user has sudo access to apt-get/systemctl without password.
     // This is a requirement for this feature to work safely.
-    let output = cmd.arg(script).output().map_err(|e| AppError::InternalServerError)?;
+    let output = cmd.arg(script).output().map_err(|_e| AppError::InternalServerError)?;
 
     if !output.status.success() {
         let stderr = String::from_utf8_lossy(&output.stderr);

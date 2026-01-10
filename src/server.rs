@@ -51,9 +51,7 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
     // Application state
     let state = AppState::new(pool, settings.clone())?;
 
-mod monitor; 
 
-// ... imports
 
     // Router
     let app = Router::new()
@@ -100,8 +98,4 @@ mod monitor;
 
 async fn stats_handler() -> &'static str {
     "OK"
-}
-
-async fn logs_handler() -> &'static str {
-    "Logs..."
 }

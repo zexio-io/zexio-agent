@@ -67,7 +67,7 @@ impl Crypto {
     pub fn verify_signature(secret: &str, body: &[u8], signature_hex: &str) -> bool {
         type HmacSha256 = Hmac<Sha256>;
         
-        let mut mac = match HmacSha256::new_from_slice(secret.as_bytes()) {
+        let mut mac = match <HmacSha256 as Mac>::new_from_slice(secret.as_bytes()) {
             Ok(m) => m,
             Err(_) => return false,
         };

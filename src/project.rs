@@ -119,10 +119,10 @@ pub async fn create_project(
 
     for domain in &req.domains {
         caddy.add_domain(domain, &req.project_id, port)
-            .map_err(|e| AppError::InternalServerError)?; // Map anyhow
+            .map_err(|_e| AppError::InternalServerError)?; // Map anyhow
     }
 
-    caddy.reload().map_err(|e| AppError::InternalServerError)?;
+    caddy.reload().map_err(|_e| AppError::InternalServerError)?;
 
     info!("Project {} created successfully on port {}", req.project_id, port);
 
@@ -249,7 +249,7 @@ pub async fn add_domain_handler(
     // 3. Update Caddy
     let caddy = Caddy::new(state.settings.caddy.clone());
     caddy.add_domain(&domain, &project_id, port)
-        .map_err(|e| AppError::InternalServerError)?; 
+        .map_err(|_e| AppError::InternalServerError)?; 
 
     caddy.reload().map_err(|e| AppError::InternalServerError)?;
     
