@@ -59,6 +59,7 @@ impl Settings {
             
             // Default Caddy Settings
             .set_default("caddy.admin_api", "http://localhost:2019")?
+            .set_default("caddy.caddyfile_path", "/etc/caddy/Caddyfile")?
             
             // Default Secrets Paths
             .set_default("secrets.worker_secret_path", "/etc/vectis/worker.secret")?

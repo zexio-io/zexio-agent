@@ -55,7 +55,7 @@ fi
 echo "⬇️  Downloading vectis-node binary..."
 if [ -n "$DOWNLOAD_URL" ]; then
     echo "Using custom download URL: $DOWNLOAD_URL"
-    if [[ "$DOWNLOAD_URL" == *.tar.gz ]]; then
+    if [[ "$DOWNLOAD_URL" == *".tar.gz"* ]]; then
         echo "📦 Detected tarball, downloading and extracting..."
         curl -L -o /tmp/vectis-node.tar.gz "$DOWNLOAD_URL"
         tar -xzf /tmp/vectis-node.tar.gz -C /tmp/
