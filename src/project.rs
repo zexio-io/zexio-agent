@@ -5,7 +5,6 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use crate::{state::AppState, errors::AppError};
-use crate::caddy::Caddy;
 use crate::storage::ProjectConfig;
 use trust_dns_resolver::TokioAsyncResolver;
 use tracing::{info, warn};
@@ -40,15 +39,6 @@ pub async fn create_project(
     // Save to storage
     state.store.create(config).await
         .map_err(|_| AppError::InternalServerError)?;
-
-    // Configure Caddy for each domain
-    let caddy = Caddy::new(state.settings.caddy.clone());
-    for domain in &req.domains {
-        caddy.add_domain(domain, &req.project_id, port)
-            .map_err(|_e| AppError::InternalServerError)?;
-    }
-
-    caddy.reload().map_err(|_e| AppError::InternalServerError)?;
 
     info!("Project {} created successfully on port {}", req.project_id, port);
 
@@ -155,14 +145,7 @@ pub async fn add_domain_handler(
     // 2. Determine Port
     let port = 8000 + (crc32fast::hash(project_id.as_bytes()) % 1000) as u16;
 
-    // 3. Update Caddy
-    let caddy = Caddy::new(state.settings.caddy.clone());
-    caddy.add_domain(&domain, &project_id, port)
-        .map_err(|_e| AppError::InternalServerError)?; 
-
-    caddy.reload().map_err(|_e| AppError::InternalServerError)?;
-    
-    // 4. Update Config (Append domain)
+    // 3. Update Config (Append domain)
     let mut config = state.store.read(&project_id).await
         .map_err(|_| AppError::BadRequest("Project not found".into()))?;
 
@@ -182,14 +165,7 @@ pub async fn remove_domain_handler(
 ) -> Result<impl IntoResponse, AppError> {
     let domain = payload.domain;
 
-    // 1. Remove from Caddy
-    let caddy = Caddy::new(state.settings.caddy.clone());
-    caddy.remove_domain(&domain)
-        .map_err(|_e| AppError::InternalServerError)?;
-
-    caddy.reload().map_err(|_e| AppError::InternalServerError)?;
-
-    // 2. Update Config (Remove domain)
+    // 1. Update Config (Remove domain)
     let mut config = state.store.read(&project_id).await
         .map_err(|_| AppError::BadRequest("Project not found".into()))?;
 

@@ -1,4 +1,3 @@
-mod caddy;
 mod config;
 mod crypto;
 mod storage;
@@ -9,6 +8,7 @@ mod monitor;
 mod streams;
 mod errors;
 mod middleware;
+mod mesh;
 mod server;
 mod state;
 

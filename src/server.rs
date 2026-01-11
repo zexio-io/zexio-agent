@@ -48,13 +48,29 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
     // Combine routes
     let app = public_routes
         .merge(protected_routes)
+        .with_state(state.clone());
+
+    let mgmt_addr: SocketAddr = format!("{}:{}", settings.server.host, settings.server.port).parse()?;
+    let mesh_addr: SocketAddr = format!("{}:{}", settings.server.host, settings.server.mesh_port).parse()?;
+    
+    info!("Management API listening on {}", mgmt_addr);
+    info!("Service Mesh Proxy listening on {}", mesh_addr);
+
+    // Create Mesh Proxy Router
+    let mesh_app = Router::new()
+        .fallback(crate::mesh::mesh_proxy_handler)
         .with_state(state);
 
-    let addr: SocketAddr = format!("{}:{}", settings.server.host, settings.server.port).parse()?;
-    info!("Server listening on {}", addr);
+    let mgmt_listener = TcpListener::bind(mgmt_addr).await?;
+    let mesh_listener = TcpListener::bind(mesh_addr).await?;
 
-    let listener = TcpListener::bind(addr).await?;
-    axum::serve(listener, app).await?;
+    let mgmt_server = axum::serve(mgmt_listener, app);
+    let mesh_server = axum::serve(mesh_listener, mesh_app);
+
+    tokio::try_join!(
+        async { mgmt_server.await.map_err(anyhow::Error::from) },
+        async { mesh_server.await.map_err(anyhow::Error::from) }
+    )?;
 
     Ok(())
 }
