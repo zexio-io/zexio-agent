@@ -190,3 +190,65 @@ pub async fn project_monitor_stream(
 
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
+
+#[derive(Serialize)]
+pub struct SyncResponse {
+    pub status: String,
+    pub version: String,
+    pub stats: SystemStats,
+}
+
+// Manual sync endpoint for dashboard to trigger
+pub async fn sync_handler(
+    State(_state): State<AppState>,
+) -> Result<Json<SyncResponse>, AppError> {
+    // Reuse global_stats logic
+    let mut sys = System::new_with_specifics(
+        RefreshKind::new()
+            .with_cpu(CpuRefreshKind::everything())
+            .with_memory(MemoryRefreshKind::everything()),
+    );
+
+    sys.refresh_cpu();
+    sys.refresh_memory();
+
+    let cpu_usage = sys.global_cpu_info().cpu_usage();
+    let memory_used = sys.used_memory();
+    let memory_total = sys.total_memory();
+    let memory_percent = (memory_used as f32 / memory_total as f32) * 100.0;
+
+    let disks = sysinfo::Disks::new_with_refreshed_list();
+    let (disk_used, disk_total) = disks
+        .iter()
+        .find(|disk| disk.mount_point().to_str() == Some("/"))
+        .map(|disk| {
+            let total = disk.total_space();
+            let available = disk.available_space();
+            let used = total - available;
+            (used, total)
+        })
+        .unwrap_or((0, 0));
+    
+    let disk_percent = if disk_total > 0 {
+        (disk_used as f32 / disk_total as f32) * 100.0
+    } else {
+        0.0
+    };
+
+    let stats = SystemStats {
+        cpu_usage,
+        memory_used,
+        memory_total,
+        memory_percent,
+        disk_used,
+        disk_total,
+        disk_percent,
+    };
+
+    Ok(Json(SyncResponse {
+        status: "online".to_string(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        stats,
+    }))
+}
+

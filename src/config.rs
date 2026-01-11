@@ -54,7 +54,7 @@ impl Settings {
             .set_default("server.public_ip", None::<String>)?
             
             // Default Storage Paths (Production)
-            .set_default("storage.projects_dir", "/apps")?
+            .set_default("storage.projects_dir", "/vectis/apps")?
             .set_default("storage.config_dir", "/etc/vectis")?
             
             // Default Caddy Settings

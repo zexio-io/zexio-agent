@@ -12,6 +12,7 @@ None! The node can start with zero environment variables using all defaults.
 |----------|---------|-------------|
 | `SERVER_PORT` | `3000` | HTTP server port |
 | `RUN_MODE` | `production` | Runtime mode (production/development) |
+| `DOWNLOAD_URL` | None | Custom direct link to download the binary during installation |
 
 ### Secrets (Auto-loaded from files)
 
