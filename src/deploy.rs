@@ -9,10 +9,14 @@ use std::process::Command;
 use crate::{state::AppState, errors::AppError};
 use tracing::{info, error};
 
+use std::collections::HashMap;
+
 #[derive(Deserialize)]
 pub struct DeployProjectRequest {
+    #[serde(alias = "bundle_url")]
     pub url: Option<String>,
     pub file: Option<String>,
+    pub environment: Option<HashMap<String, String>>,
 }
 
 pub async fn project_deploy_handler(
@@ -101,22 +105,33 @@ pub async fn project_deploy_handler(
         let _ = Command::new("chmod").arg("+x").arg(&app_path).output();
     }
 
-    // 3. Decrypt Environment from JSON config
-    let config = state.store.read(&project_id).await
-        .map_err(|_| AppError::BadRequest("Project not found".into()))?;
+    // 3. Setup Environment (.env)
+    let env_path = format!("{}/.env", project_dir);
+    let mut env_content = String::new();
 
-    if !config.encrypted_env.is_empty() {
-        // Decode hex string to bytes
-        let enc_env = hex::decode(&config.encrypted_env)
-            .map_err(|_| AppError::InternalServerError)?;
-        
-        let env_bytes = state.crypto.decrypt(&enc_env)
-            .map_err(|_| AppError::InternalServerError)?; 
-        let env_str = String::from_utf8(env_bytes)
-             .map_err(|_| AppError::InternalServerError)?;
-        
-        let env_path = format!("{}/.env", project_dir);
-        tokio::fs::write(&env_path, env_str).await.map_err(|_| AppError::InternalServerError)?;
+    // 3.1 Use provided environment from payload (Higher priority during deployment)
+    if let Some(env_map) = req.environment {
+        for (k, v) in env_map {
+            env_content.push_str(&format!("{}={}\n", k, v));
+        }
+    }
+
+    // 3.2 Add/Merge encrypted environment from stored config
+    if let Ok(config) = state.store.read(&project_id).await {
+        if !config.encrypted_env.is_empty() {
+            if let Ok(enc_env) = hex::decode(&config.encrypted_env) {
+                if let Ok(env_bytes) = state.crypto.decrypt(&enc_env) {
+                    if let Ok(stored_env_str) = String::from_utf8(env_bytes) {
+                        env_content.push_str("\n# Stored Secret Env\n");
+                        env_content.push_str(&stored_env_str);
+                    }
+                }
+            }
+        }
+    }
+
+    if !env_content.is_empty() {
+        tokio::fs::write(&env_path, env_content).await.map_err(|_| AppError::InternalServerError)?;
     }
 
     // 4. Generate/Restart Systemd

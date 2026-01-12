@@ -251,4 +251,38 @@ pub async fn sync_handler(
         stats,
     }))
 }
+#[derive(Deserialize)]
+pub struct ConfigureFirewallRequest {
+    pub port: u16,
+    pub allowed_tenants: Vec<String>,
+}
+
+pub async fn configure_firewall_handler(
+    State(_state): State<AppState>,
+    Json(payload): Json<ConfigureFirewallRequest>,
+) -> Result<Json<SyncResponse>, AppError> {
+    use crate::mesh::firewall::FirewallManager;
+    
+    FirewallManager::update_rules(payload.port, &payload.allowed_tenants)
+        .map_err(|_| AppError::InternalServerError)?;
+
+    // Return dummy sync response for now
+    Ok(Json(SyncResponse {
+        status: "firewall_updated".to_string(),
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        stats: get_dummy_stats(), // I should extract global_stats logic to a helper
+    }))
+}
+
+fn get_dummy_stats() -> SystemStats {
+    SystemStats {
+        cpu_usage: 0.0,
+        memory_used: 0,
+        memory_total: 0,
+        memory_percent: 0.0,
+        disk_used: 0,
+        disk_total: 0,
+        disk_percent: 0.0,
+    }
+}
 

@@ -8,6 +8,8 @@ pub struct AppState {
     pub settings: Settings,
     pub crypto: Crypto,
     pub worker_secret: String,
+    pub redis: redis::Client,
+    pub mesh_jwt_secret: String,
 }
 
 impl AppState {
@@ -20,14 +22,20 @@ impl AppState {
             .trim()
             .to_string();
 
-        // Initialize project store
-        let store = ProjectStore::new(&settings.storage.projects_dir);
+        // Initialize Redis
+        let redis_url = std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
+        let redis = redis::Client::open(redis_url)?;
+
+        // Mesh JWT Secret (should be in settings, but falling back for now)
+        let mesh_jwt_secret = std::env::var("MESH_JWT_SECRET").unwrap_or_else(|_| "zexio-mesh-secret-key".to_string());
 
         Ok(Self {
             store,
             settings,
             crypto,
             worker_secret,
+            redis,
+            mesh_jwt_secret,
         })
     }
 }

@@ -31,6 +31,7 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
         .route("/projects/:id/deploy", post(deploy::project_deploy_handler))
         .route("/projects/:id/webhook", post(deploy::project_deploy_handler))
         .route("/services/install", post(services::install_service_handler))
+        .route("/firewall/configure", post(monitor::configure_firewall_handler))
         .route("/sync", post(monitor::sync_handler))
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
