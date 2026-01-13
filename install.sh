@@ -130,17 +130,34 @@ EOF
 systemctl daemon-reload
 systemctl enable --now zexio-agent > /dev/null 2>&1
 
-# 8. Auto-Registration (Enterprise/Pro)
-if [ -n "$ZEXIO_TOKEN" ]; then
-    echo "🔗 Registering with Zexio Dashboard..."
-    DASHBOARD_URL="https://dashboard.zexio.app"
-    PUBLIC_IP=$(curl -s https://api.ipify.org)
-    WORKER_SECRET=$(cat /etc/zexio/worker.secret)
+# Parse Arguments
+for i in "$@"; do
+  case $i in
+    --token=*)
+      ZEXIO_TOKEN="${i#*=}"
+      shift
+      ;;
+    --standalone)
+      STANDALONE_MODE=true
+      shift
+      ;;
+    *)
+      ;;
+  esac
+done
 
-    # Note: Registration logic will be handled by the Rust agent on first boot
-    # if ZEXIO_TOKEN is present in environment or config.
-    # For now, we'll just log it.
-    echo "ZEXIO_TOKEN detected. Agent will attempt auto-registration on startup."
+# 8. Auto-Registration Config
+if [ "$STANDALONE_MODE" = true ]; then
+    echo "⚠️  Standalone Mode enabled. Skipping Zexio Cloud registration."
+elif [ -n "$ZEXIO_TOKEN" ]; then
+    echo "🔗 Provisioning Token detected."
+    
+    # Save token for Agent to use
+    echo "$ZEXIO_TOKEN" > /etc/zexio/provisioning_token
+    chmod 600 /etc/zexio/provisioning_token
+    chown worker:worker /etc/zexio/provisioning_token
+
+    echo "✅ Token saved to /etc/zexio/provisioning_token"
 fi
 
 echo -e "${GREEN}✨ Installation Complete! Zexio Agent is online.${NC}"

@@ -17,20 +17,24 @@ impl AppState {
         // Initialize crypto
         let crypto = Crypto::new(&settings.secrets.master_key_path)?;
 
-        // Load worker secret
-        let worker_secret = fs::read_to_string(&settings.secrets.worker_secret_path)?
-            .trim()
-            .to_string();
+        // Load worker secret (Graceful fallback for Standalone Mode)
+        let worker_secret = match fs::read_to_string(&settings.secrets.worker_secret_path) {
+            Ok(s) => s.trim().to_string(),
+            Err(_) => {
+                println!("⚠️  Running in Standalone Mode (No Cloud Identity)");
+                "standalone-mode".to_string()
+            }
+        };
 
         // Initialize Redis
         let redis_url = std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
         let redis = redis::Client::open(redis_url)?;
 
-        // Mesh JWT Secret (should be in settings, but falling back for now)
+        // Mesh JWT Secret
         let mesh_jwt_secret = std::env::var("MESH_JWT_SECRET").unwrap_or_else(|_| "zexio-mesh-secret-key".to_string());
 
         Ok(Self {
-            store,
+            store: crate::storage::ProjectStore::new(&settings.storage.path),
             settings,
             crypto,
             worker_secret,
