@@ -143,7 +143,7 @@ pub async fn add_domain_handler(
     }
 
     // 2. Determine Port
-    let port = 8000 + (crc32fast::hash(project_id.as_bytes()) % 1000) as u16;
+    let _port = 8000 + (crc32fast::hash(project_id.as_bytes()) % 1000) as u16;
 
     // 3. Update Config (Append domain)
     let mut config = state.store.read(&project_id).await

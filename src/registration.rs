@@ -52,7 +52,7 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
 
     // 3. Gather System Info
     let hostname = hostname::get()?.to_string_lossy().to_string();
-    let info = sysinfo::System::new_all();
+    let _info = sysinfo::System::new_all();
     let os = sysinfo::System::name().unwrap_or("unknown".to_string());
     let arch = sysinfo::System::cpu_arch().unwrap_or("unknown".to_string());
 

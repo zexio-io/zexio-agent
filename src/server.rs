@@ -1,7 +1,7 @@
 use axum::{
     routing::{get, post, delete},
     Router,
-    extract::{State, Path},
+};
 };
 use crate::{state::AppState, config::Settings, project, deploy, services, monitor, middleware, streams};
 use std::net::SocketAddr;
@@ -76,6 +76,4 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn stats_handler() -> &'static str {
-    "OK"
-}
+

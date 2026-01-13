@@ -1,4 +1,4 @@
-use config::{Config, ConfigError, File, Environment};
+use config::{Config, ConfigError};
 use serde::Deserialize;
 use std::env;
 
@@ -26,6 +26,7 @@ pub struct StorageSettings {
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct SecretsSettings {
+    #[allow(dead_code)]
     pub worker_secret: Option<String>,
     pub worker_secret_path: String,
     pub master_key_path: String,

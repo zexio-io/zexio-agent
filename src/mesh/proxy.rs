@@ -15,11 +15,16 @@ use redis::AsyncCommands;
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ServiceTokenClaims {
-    userId: String,
-    orgId: String,
-    sourceService: String,
-    targetService: String,
-    workerId: Option<String>,
+    #[serde(rename = "userId")]
+    user_id: String,
+    #[serde(rename = "orgId")]
+    org_id: String,
+    #[serde(rename = "sourceService")]
+    source_service: String,
+    #[serde(rename = "targetService")]
+    target_service: String,
+    #[serde(rename = "workerId")]
+    worker_id: Option<String>,
 }
 
 pub async fn mesh_proxy_handler(
@@ -55,7 +60,7 @@ pub async fn mesh_proxy_handler(
             
             match decode::<ServiceTokenClaims>(token, &decoding_key, &validation) {
                 Ok(token_data) => {
-                    let token_org_id = token_data.claims.orgId;
+                    let token_org_id = token_data.claims.org_id;
                     debug!("Validated mesh token for org: {}", token_org_id);
                     
                     // CRITICAL: Strict Tenant Isolation Check
