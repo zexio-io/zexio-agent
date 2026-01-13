@@ -13,9 +13,6 @@ on:
 env:
   CARGO_TERM_COLOR: always
   BINARY_NAME: zexio_agent
-  S3_BUCKET: vectis-file
-  AWS_DEFAULT_REGION: ap-southeast-1
-  AWS_ENDPOINT_URL: https://iktmmqjgbygouyxdcrzh.storage.supabase.co/storage/v1/s3
 
 jobs:
   build:
@@ -99,10 +96,12 @@ jobs:
           retention-days: 5
 
   release:
-    name: Upload to Storage (S3)
+    name: Create GitHub Release
     needs: build
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
+    permissions:
+      contents: write
     
     steps:
       - uses: actions/checkout@v4
@@ -112,20 +111,9 @@ jobs:
         with:
           path: artifacts
 
-      - name: Upload to S3
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        run: |
-          # Install AWS CLI
-          sudo apt-get update && sudo apt-get install -y awscli
-          
-          # Iterate and Upload
-          for dir in artifacts/*; do
-            filename=$(basename "$dir")
-            echo "Uploading $filename..."
-            # Adjust upload path structure as needed
-            aws s3 cp "artifacts/$filename/$filename" \
-              "s3://${{ env.S3_BUCKET }}/releases/agent/${{ github.ref_name }}/$filename" \
-              --endpoint-url ${{ env.AWS_ENDPOINT_URL }}
-          done
+      - name: Publish Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: artifacts/**/*
+          fail_on_unmatched_files: true
+          generate_release_notes: true
