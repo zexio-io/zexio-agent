@@ -58,8 +58,7 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
     };
 
     // 4. Send Registration Request
-    // TODO: Use configured API URL, hardcoded for now based on local/dev
-    let api_url = "http://localhost:4000/workers/register"; 
+    let api_url = format!("{}/workers/register", settings.cloud.api_url);
     
     let res = client.post(api_url)
         .header("X-Zexio-Token", &dto.token)

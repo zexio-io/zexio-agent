@@ -7,6 +7,7 @@ pub struct Settings {
     pub server: ServerSettings,
     pub storage: StorageSettings,
     pub secrets: SecretsSettings,
+    pub cloud: CloudSettings,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -28,6 +29,11 @@ pub struct SecretsSettings {
     pub worker_secret: Option<String>,
     pub worker_secret_path: String,
     pub master_key_path: String,
+}
+
+#[derive(Debug, Deserialize, Clone)]
+pub struct CloudSettings {
+    pub api_url: String,
 }
 
 impl Settings {
@@ -60,11 +66,18 @@ impl Settings {
             // Default Secrets Paths
             .set_default("secrets.worker_secret_path", "/etc/zexio/worker.secret")?
             .set_default("secrets.master_key_path", "/etc/zexio/master.key")?
+
+            // Default Cloud Settings
+            .set_default("cloud.api_url", "https://api.zexio.io")?
             
             // Load config file if exists
             .add_source(
                 config::File::with_name(&format!("config/{}", env))
                     .required(false)
+            )
+            .add_source(
+                config::Environment::with_prefix("ZEXIO")
+                    .separator("__") // ZEXIO_CLOUD__API_URL overrides cloud.api_url
             )
             .build()?;
 
