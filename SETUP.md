@@ -1,4 +1,4 @@
-# Plane Worker Daemon Setup Guide
+# Zexio Agent Setup Guide
 
 ## 1. Requirements
 - Rust (for building)
@@ -9,7 +9,7 @@
 ## 2. Build
 ```bash
 cargo build --release
-cp target/release/plane /opt/plane/plane
+cp target/release/zexio_agent /opt/zexio/zexio-agent
 ```
 
 ## 3. Configuration
@@ -28,7 +28,7 @@ cp target/release/plane /opt/plane/plane
 3.  Reload and start:
     ```bash
     systemctl daemon-reload
-    systemctl enable --now worker
+    systemctl enable --now zexio-agent
     ```
 
 ## 5. Caddy Setup

@@ -1,11 +1,11 @@
-# Caddyfile for Plane Worker
+# Caddyfile for Zexio Agent
 
 # Default listener (optional, for admin or fallback)
 :80 {
-    respond "Plane Worker Gateway"
+    respond "Zexio Agent Gateway"
 }
 
-# Plane Admin API (if exposed via Caddy, though usually internal)
+# Zexio Agent Admin API (if exposed via Caddy, though usually internal)
 # worker.yourinfra.com {
 #     reverse_proxy localhost:3000
 # }

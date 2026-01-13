@@ -3,7 +3,7 @@ server:
   host: "0.0.0.0"
 
 storage:
-  database_url: "sqlite://data/plane.db"
+  database_url: "sqlite://data/zexio-agent.db"
   projects_dir: "./data/projects"
 
 caddy:

@@ -1,4 +1,4 @@
-# Environment Variables for Vectis Node
+# Environment Variables for Zexio Agent
 
 ## Required Environment Variables
 
@@ -47,10 +47,10 @@ CADDY_ADMIN_API=http://localhost:2019
 
 ```bash
 # Start with all defaults
-./vectis-node
+./zexio-agent
 
 # Start on custom port
-SERVER_PORT=8080 ./vectis-node
+SERVER_PORT=8080 ./zexio-agent
 ```
 
 ## Production Systemd Service
@@ -60,8 +60,8 @@ The `install.sh` script creates a systemd service with:
 ```ini
 [Service]
 Environment="SERVER_PORT=3000"
-ExecStart=/app/vectis/plane
-WorkingDirectory=/app/vectis
+ExecStart=/zexio/app/zexio-agent
+WorkingDirectory=/zexio/app
 ```
 
 **No additional environment variables needed!** All secrets are loaded from files.

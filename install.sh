@@ -7,7 +7,7 @@ GREEN='\033[0;32m'
 RED='\033[0;31m'
 NC='\033[0m'
 
-echo -e "${GREEN}✈️  Planting the Zexio Plane (Worker Installer)...${NC}"
+echo -e "${GREEN}✈️  Planting the Zexio Agent (Worker Installer)...${NC}"
 
 # ... (Previous code for Root Check and Dependencies omitted for brevity) ...
 
@@ -62,18 +62,18 @@ if [ -n "$CF_TUNNEL_TOKEN" ]; then
 fi
 
 # 5. Download Binary
-echo "⬇️  Downloading zexio-node binary..."
+echo "⬇️  Downloading zexio-agent binary..."
 if [ -n "$DOWNLOAD_URL" ]; then
     echo "Using custom download URL: $DOWNLOAD_URL"
-    curl -L -o /zexio/app/plane "$DOWNLOAD_URL"
-    echo "✅ Downloaded zexio-node from custom URL"
+    curl -L -o /zexio/app/zexio-agent "$DOWNLOAD_URL"
+    echo "✅ Downloaded zexio-agent from custom URL"
 else
     # Fallback to a placeholder or latest GitHub release (adjusting for Zexio repo later)
     echo "⚠️  DOWNLOAD_URL not provided. Using development placeholder..."
-    touch /zexio/app/plane
+    touch /zexio/app/zexio-agent
 fi
 
-chmod +x /zexio/app/plane
+chmod +x /zexio/app/zexio-agent
 
 # 6. Generate Keys (if missing)
 echo "🔑 Allocating secrets..."
@@ -92,9 +92,9 @@ fi
 # 7. Systemd
 echo "⚙️  Configuring Systemd..."
 
-cat > /etc/systemd/system/worker.service <<EOF
+cat > /etc/systemd/system/zexio-agent.service <<EOF
 [Unit]
-Description=Zexio Plane Worker
+Description=Zexio Agent
 After=network.target
 
 [Service]
@@ -102,7 +102,7 @@ Type=simple
 User=worker
 Group=worker
 WorkingDirectory=/zexio/app
-ExecStart=/zexio/app/plane
+ExecStart=/zexio/app/zexio-agent
 Restart=always
 
 [Install]
@@ -128,7 +128,7 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable --now worker > /dev/null 2>&1
+systemctl enable --now zexio-agent > /dev/null 2>&1
 
 # 8. Auto-Registration (Enterprise/Pro)
 if [ -n "$ZEXIO_TOKEN" ]; then
@@ -143,12 +143,12 @@ if [ -n "$ZEXIO_TOKEN" ]; then
     echo "ZEXIO_TOKEN detected. Agent will attempt auto-registration on startup."
 fi
 
-echo -e "${GREEN}✨ Installation Complete! Zexio Plane is flying.${NC}"
+echo -e "${GREEN}✨ Installation Complete! Zexio Agent is online.${NC}"
 
 END_TIME=$(date +%s)
 DURATION=$((END_TIME - START_TIME))
 echo -e "${GREEN}⏱️  Time taken for server to go live: ${DURATION} seconds${NC}"
 echo ""
 echo "Commands:"
-echo "  systemctl status worker  - Check agent status"
-echo "  journalctl -u worker     - View agent logs"
+echo "  systemctl status zexio-agent  - Check agent status"
+echo "  journalctl -u zexio-agent     - View agent logs"

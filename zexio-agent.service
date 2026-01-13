@@ -1,0 +1,14 @@
+[Unit]
+Description=Zexio Agent
+After=network.target
+
+[Service]
+Type=simple
+User=worker
+Group=worker
+WorkingDirectory=/zexio/app
+ExecStart=/zexio/app/zexio-agent
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

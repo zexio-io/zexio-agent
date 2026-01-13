@@ -1,5 +1,5 @@
 [package]
-name = "plane"
+name = "zexio_agent"
 version = "0.1.0"
 edition = "2021"
 

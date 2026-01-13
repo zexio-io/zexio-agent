@@ -1,6 +1,6 @@
-# 🌟 Plane Worker Features
+# 🌟 Zexio Agent Features
 
-Plane is a lightweight, secure, and production-ready worker daemon for deploying and managing applications on a VPS. It provides a REST API to manage the entire lifecycle of your projects.
+Zexio Agent is a lightweight, secure, and production-ready worker daemon for deploying and managing applications on a VPS. It provides a REST API to manage the entire lifecycle of your projects.
 
 ## 🚀 Core Features
 
@@ -38,4 +38,4 @@ Plane is a lightweight, secure, and production-ready worker daemon for deploying
 *   **Process Manager**: Uses native `systemd` for robust process management.
 *   **Reverse Proxy**: Uses **Caddy** for routing and SSL termination.
 *   **Database**: Uses embedded **SQLite** for lightweight state management.
-*   **Storage**: Organized directory structure (`/apps/{id}/bundle`) for easy manual inspection if needed.
+*   **Storage**: Organized directory structure (`/zexio/apps/{id}/bundle`) for easy manual inspection if needed.

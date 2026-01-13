@@ -21,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
 
     // Load configuration
     let settings = config::Settings::new()?;
-    info!("Starting Plane worker on port {}", settings.server.port);
+    info!("Starting Zexio Agent on port {}", settings.server.port);
 
     // TODO: Initialize DB connection
     // TODO: Initialize AppState

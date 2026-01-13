@@ -1,8 +1,10 @@
 # 🚀 Production Deployment Guide
 
-This guide details how to deploy the Plane Worker using the custom specific structure.
+This guide covers the deployment of the Zexio Agent on Linux servers.
 
-## 📋 Prerequisites
+## Prerequisites
+- Ubuntu 20.04+ or Debian 11+
+- Root access
 - **OS**: Linux
 - **Dependencies**: `caddy`, `systemd`, `sqlite3`
 
@@ -22,6 +24,21 @@ This guide details how to deploy the Plane Worker using the custom specific stru
 | **Caddyfile** | `/etc/caddy/Caddyfile` | Main Caddy config. |
 | **Master Key** | `/etc/vectis/master.key` | Encryption key (File). |
 | **Worker Secret** | `/etc/vectis/worker.secret` | API Auth Secret (File). |
+
+## Service Management
+
+The agent runs as a systemd service named `zexio-agent`.
+
+```bash
+# Check status
+systemctl status zexio-agent
+
+# Restart
+systemctl restart zexio-agent
+
+# Logs
+journalctl -u zexio-agent -f
+```
 
 ## 📦 Deployment Steps
 

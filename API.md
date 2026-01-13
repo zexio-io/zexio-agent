@@ -1,4 +1,4 @@
-# 📡 Plane Worker API Reference
+# 📡 Zexio Agent API Reference
 
 ## 🔐 Authentication
 Required Header: `X-Signature` (HMAC-SHA256 of body using Worker Secret).
