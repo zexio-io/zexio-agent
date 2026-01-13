@@ -91,10 +91,14 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
     fs::write(identity_path, identity_json)?;
     
     // Secure the file
-    use std::os::unix::fs::PermissionsExt;
-    let mut perms = fs::metadata(identity_path)?.permissions();
-    perms.set_mode(0o600);
-    fs::set_permissions(identity_path, perms)?;
+    // Secure the file (Unix only)
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(identity_path)?.permissions();
+        perms.set_mode(0o600);
+        fs::set_permissions(identity_path, perms)?;
+    }
 
     info!("Registration successful! Identity saved.");
 

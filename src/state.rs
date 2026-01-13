@@ -34,7 +34,7 @@ impl AppState {
         let mesh_jwt_secret = std::env::var("MESH_JWT_SECRET").unwrap_or_else(|_| "zexio-mesh-secret-key".to_string());
 
         Ok(Self {
-            store: crate::storage::ProjectStore::new(&settings.storage.path),
+            store: crate::storage::ProjectStore::new(&settings.storage.projects_dir),
             settings,
             crypto,
             worker_secret,
