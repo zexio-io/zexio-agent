@@ -38,10 +38,19 @@ chmod 700 /etc/zexio
 if [ -n "$CF_TUNNEL_TOKEN" ]; then
     echo "☁️  CF_TUNNEL_TOKEN detected. Installing cloudflared..."
     if ! command -v cloudflared &> /dev/null; then
-        curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+        ARCH=$(uname -m)
+        case $ARCH in
+            x86_64)  PLATFORM="amd64" ;;
+            aarch64) PLATFORM="arm64" ;;
+            armv7l)  PLATFORM="arm" ;;
+            *)       PLATFORM="amd64" ;; # Fallback
+        esac
+        
+        echo "Detected architecture: $ARCH -> Targeting $PLATFORM"
+        curl -L --output cloudflared.deb "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-${PLATFORM}.deb"
         dpkg -i cloudflared.deb
         rm cloudflared.deb
-        echo "✅ cloudflared installed"
+        echo "✅ cloudflared installed for $PLATFORM"
     else
         echo "✅ cloudflared already installed"
     fi
