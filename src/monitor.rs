@@ -3,7 +3,7 @@ use axum::{
     Json,
     response::sse::{Event, KeepAlive, Sse},
 };
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use sysinfo::{System, RefreshKind, CpuRefreshKind, MemoryRefreshKind};
 use crate::{state::AppState, errors::AppError};
 use std::process::Command;

@@ -8,7 +8,7 @@ use hyper_util::client::legacy::connect::HttpConnector;
 use hyper_util::client::legacy::Client;
 use hyper_util::rt::TokioExecutor;
 use crate::state::AppState;
-use tracing::{info, error, debug};
+use tracing::{error, debug};
 use serde::{Deserialize, Serialize};
 use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
 use redis::AsyncCommands;
@@ -29,12 +29,13 @@ pub async fn mesh_proxy_handler(
     let host = req.headers()
         .get(header::HOST)
         .and_then(|h| h.to_str().ok())
-        .ok_or(StatusCode::BAD_REQUEST)?;
+        .ok_or(StatusCode::BAD_REQUEST)?
+        .to_string(); // CLONE HERE to release immutable borrow of req
 
     debug!("Mesh Proxy receiving request for host: {}", host);
 
     // --- 1. Resolve Host ---
-    let (target_host, target_port, target_org_id) = match resolve_mesh_dns(&state, host).await {
+    let (target_host, target_port, target_org_id) = match resolve_mesh_dns(&state, &host).await {
         Ok(res) => res,
         Err(_) => return Err(StatusCode::NOT_FOUND),
     };
@@ -147,7 +148,7 @@ async fn resolve_mesh_dns(state: &AppState, host: &str) -> Result<(String, u16, 
             prefix
         };
         let port = 8000 + (crc32fast::hash(project_id.as_bytes()) % 1000) as u16;
-        return Ok(("127.0.0.1".to_string(), port));
+        return Ok(("127.0.0.1".to_string(), port, "".to_string()));
     }
 
     Err(())
