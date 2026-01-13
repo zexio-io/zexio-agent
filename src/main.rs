@@ -20,8 +20,18 @@ async fn main() -> anyhow::Result<()> {
     // Initialize logging
     tracing_subscriber::fmt::init();
 
+    // Check for CLI arguments
+    let args: Vec<String> = std::env::args().collect();
+
     // Load configuration
     let settings = config::Settings::new()?;
+
+    // Handle Commands
+    if args.len() > 1 && args[1] == "unregister" {
+        registration::unregister(&settings).await?;
+        return Ok(());
+    }
+
     info!("Starting Zexio Agent on port {}", settings.server.port);
 
     // Auto-Registration Handshake

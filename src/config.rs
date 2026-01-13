@@ -28,8 +28,11 @@ pub struct StorageSettings {
 pub struct SecretsSettings {
     #[allow(dead_code)]
     pub worker_secret: Option<String>,
+    pub start_port: Option<u16>, // Unused but kept for compatibility
     pub worker_secret_path: String,
     pub master_key_path: String,
+    pub identity_path: String,
+    pub provisioning_token_path: String,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -68,6 +71,8 @@ impl Settings {
             // Default Secrets Paths
             .set_default("secrets.worker_secret_path", "/etc/zexio/worker.secret")?
             .set_default("secrets.master_key_path", "/etc/zexio/master.key")?
+            .set_default("secrets.identity_path", "/etc/zexio/identity.json")?
+            .set_default("secrets.provisioning_token_path", "/etc/zexio/provisioning_token")?
 
             // Default Cloud Settings
             .set_default("cloud.api_url", "https://api.zexio.io")?

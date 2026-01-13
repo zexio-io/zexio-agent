@@ -13,9 +13,14 @@ struct RegisterDto {
 }
 
 #[derive(Deserialize)]
-struct RegisterResponse {
+struct RegisterData {
     worker_id: String,
     secret_key: String,
+}
+
+#[derive(Deserialize)]
+struct RegisterResponse {
+    data: RegisterData,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -23,9 +28,9 @@ struct Identity {
     worker_id: String,
     secret_key: String,
 }
-
 pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
-    let identity_path = "/etc/zexio/identity.json";
+    let identity_path = &settings.secrets.identity_path;
+    info!("Checking for existing identity at: {}", identity_path);
 
     // 1. Check if already registered
     if Path::new(identity_path).exists() {
@@ -34,9 +39,8 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
     }
 
     // 2. Check for Provisioning Token
-    // 2. Check for Provisioning Token
-    // Priority: Env/Config (settings.cloud.token) -> File (/etc/zexio/provisioning_token)
-    let token_path = "/etc/zexio/provisioning_token";
+    // Priority: Env/Config (settings.cloud.token) -> File (settings.secrets.provisioning_token_path)
+    let token_path = &settings.secrets.provisioning_token_path;
     
     let token = if let Some(t) = &settings.cloud.token {
         info!("Using provisioning token from configuration/env.");
@@ -83,8 +87,8 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
 
     // 5. Save Identity
     let identity = Identity {
-        worker_id: response.worker_id,
-        secret_key: response.secret_key,
+        worker_id: response.data.worker_id,
+        secret_key: response.data.secret_key,
     };
 
     let identity_json = serde_json::to_string_pretty(&identity)?;
@@ -104,6 +108,42 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
 
     // 6. Cleanup Token (Security Best Practice)
     let _ = fs::remove_file(token_path);
+
+    Ok(())
+}
+
+pub async fn unregister(settings: &Settings) -> anyhow::Result<()> {
+    let identity_path = &settings.secrets.identity_path;
+
+    if !Path::new(identity_path).exists() {
+        return Err(anyhow::anyhow!("No identity found. Agent is not registered."));
+    }
+
+    let identity_json = fs::read_to_string(identity_path)?;
+    let identity: Identity = serde_json::from_str(&identity_json)?;
+
+    info!("Unregistering agent {} from cloud...", identity.worker_id);
+
+    let client = reqwest::Client::new();
+    let api_url = format!("{}/workers/unregister", settings.cloud.api_url);
+
+    let res = client.post(api_url)
+        .json(&serde_json::json!({
+            "worker_id": identity.worker_id,
+            "secret": identity.secret_key,
+        }))
+        .send()
+        .await?;
+
+    if !res.status().is_success() {
+        let err_text = res.text().await?;
+        error!("Unregistration failed on server: {}", err_text);
+        return Err(anyhow::anyhow!("Unregistration failed: {}", err_text));
+    }
+
+    // Delete local identity
+    fs::remove_file(identity_path)?;
+    info!("Agent unregistered successfully. Local identity deleted.");
 
     Ok(())
 }
