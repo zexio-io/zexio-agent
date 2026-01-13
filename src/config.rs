@@ -8,6 +8,7 @@ pub struct Settings {
     pub storage: StorageSettings,
     pub secrets: SecretsSettings,
     pub cloud: CloudSettings,
+    pub debug: bool,
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -39,6 +40,7 @@ pub struct SecretsSettings {
 pub struct CloudSettings {
     pub api_url: String,
     pub token: Option<String>,
+    pub worker_id: Option<String>,
 }
 
 impl Settings {
@@ -76,6 +78,7 @@ impl Settings {
 
             // Default Cloud Settings
             .set_default("cloud.api_url", "https://api.zexio.io")?
+            .set_default("debug", false)?
             
             // Load config file if exists
             .add_source(

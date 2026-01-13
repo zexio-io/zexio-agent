@@ -7,6 +7,7 @@ use tracing::{info, error};
 #[derive(Serialize)]
 struct RegisterDto {
     token: String,
+    worker_id: Option<String>,
     hostname: String,
     arch: String,
     os: String,
@@ -34,8 +35,35 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
 
     // 1. Check if already registered
     if Path::new(identity_path).exists() {
-        info!("Identity found. Agent is already registered.");
-        return Ok(());
+        info!("Identity found. Verifying with cloud...");
+        let identity_json = fs::read_to_string(identity_path)?;
+        let identity: Identity = serde_json::from_str(&identity_json)?;
+
+        let client = reqwest::Client::new();
+        let api_url = format!("{}/workers/heartbeat", settings.cloud.api_url);
+        
+        let res = client.post(api_url)
+            .json(&serde_json::json!({
+                "worker_id": identity.worker_id,
+                "secret": identity.secret_key,
+            }))
+            .send()
+            .await?;
+
+        if res.status().is_success() {
+            info!("Identity verified. Agent is online.");
+            return Ok(()).map_err(|e: anyhow::Error| e);
+        } else if res.status() == reqwest::StatusCode::FORBIDDEN || res.status() == reqwest::StatusCode::NOT_FOUND {
+            error!("Identity no longer valid in cloud. Resetting local identity.");
+            let _ = fs::remove_file(identity_path);
+        } else {
+            let res_text = res.text().await?;
+            if settings.debug {
+                info!("DEBUG: Heartbeat response: {}", res_text);
+            }
+            error!("Heartbeat failed: {}. Continuing with existing identity.", res_text);
+            return Ok(()); // Don't block startup if cloud is just down
+        }
     }
 
     // 2. Check for Provisioning Token
@@ -49,7 +77,8 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
         info!("Found provisioning token file.");
         fs::read_to_string(token_path)?.trim().to_string()
     } else {
-        info!("No provisioning token found (Env or File). Waiting for manual configuration.");
+        info!("No provisioning token found (Env or File).");
+        info!("💡 TIP: Use an active token from the Zexio Dashboard to connect to the cloud.");
         return Ok(());
     };
     info!("Found provisioning token. Attempting registration...");
@@ -60,9 +89,12 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
     let os = sysinfo::System::name().unwrap_or("unknown".to_string());
     let arch = sysinfo::System::cpu_arch().unwrap_or("unknown".to_string());
 
+    info!("System Info: Hostname={}, OS={}, Arch={}", hostname, os, arch);
+
     let client = reqwest::Client::new();
     let dto = RegisterDto {
         token,
+        worker_id: settings.cloud.worker_id.clone(),
         hostname,
         os,
         arch,
@@ -80,10 +112,15 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
     if !res.status().is_success() {
         let err_text = res.text().await?;
         error!("Registration failed: {}", err_text);
+        info!("💡 TIP: Your token might be expired or invalid. Please generate a new one from the Zexio Dashboard.");
         return Err(anyhow::anyhow!("Registration failed: {}", err_text));
     }
 
-    let response: RegisterResponse = res.json().await?;
+    let res_text = res.text().await?;
+    if settings.debug {
+        info!("DEBUG: Registration response: {}", res_text);
+    }
+    let response: RegisterResponse = serde_json::from_str(&res_text)?;
 
     // 5. Save Identity
     let identity = Identity {
@@ -104,7 +141,8 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
         fs::set_permissions(identity_path, perms)?;
     }
 
-    info!("Registration successful! Identity saved.");
+    info!("Registration successful! Assigned Worker ID: {}", identity.worker_id);
+    info!("Identity saved at {}.", identity_path);
 
     // 6. Cleanup Token (Security Best Practice)
     let _ = fs::remove_file(token_path);
@@ -139,6 +177,11 @@ pub async fn unregister(settings: &Settings) -> anyhow::Result<()> {
         let err_text = res.text().await?;
         error!("Unregistration failed on server: {}", err_text);
         return Err(anyhow::anyhow!("Unregistration failed: {}", err_text));
+    }
+
+    if settings.debug {
+        let res_text = res.text().await?;
+        info!("DEBUG: Unregistration response: {}", res_text);
     }
 
     // Delete local identity
