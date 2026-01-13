@@ -34,6 +34,7 @@ pub struct SecretsSettings {
 #[derive(Debug, Deserialize, Clone)]
 pub struct CloudSettings {
     pub api_url: String,
+    pub token: Option<String>,
 }
 
 impl Settings {

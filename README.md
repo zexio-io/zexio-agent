@@ -14,8 +14,6 @@ Zexio Agent is the workload orchestrator and P2P mesh router for the Zexio infra
 These must be installed on the Linux VPS where Zexio Agent runs.
 *   **[Caddy](https://caddyserver.com/)**: Automatically manages SSL certificates (Let's Encrypt) and reverse proxies traffic to your apps.
 *   **[OpenSSL](https://www.openssl.org/)**: Used by the administration scripts (`init.sh`, `install.sh`) to generate secure random keys (`master.key`, `worker.secret`).
-*   **SQLite3**: (Optional CLI) Useful for debugging the local database, though Zexio Agent bundles the customized driver.
-*   **Systemd**: Required for managing the lifecycle of the worker and deployed applications.
 
 ### 2. Rust Crates (Built-in)
 The following libraries are compiled into the binary. You don't need to install them separately, but here is what they do:
@@ -25,8 +23,9 @@ The following libraries are compiled into the binary. You don't need to install 
 *   **`axum`**: A robust, ergonomic web framework (by the Tokio team) used for the HTTP API (`/deploy`, `/projects`).
 *   **`tower-http`**: Middleware stack for `axum` (logging, tracing, cors).
 
-#### Database
-*   **`sqlx`** (with `sqlite`): Safe, async SQL driver. It handles migrations and interactions with the local `zexio-agent.db` to store project metadata and encrypted environment variables.
+#### Storage
+*   **`serde_json`**: Handles serialization of project metadata and configuration to local JSON files (`config.json`).
+*   **`tokio::fs`**: Asynchronous file system operations for safe, non-blocking I/O.
 
 #### Security & Cryptography
 *   **`aes-gcm`**: Implements Authenticated Encryption (AEAD) to securely store environment variables at rest using the `master.key`.
@@ -39,13 +38,55 @@ The following libraries are compiled into the binary. You don't need to install 
 *   **`tracing`**: Structured logging system for easier debugging and observability.
 *   **`trust-dns-resolver`**: (Planned/Partial) For verifying CNAME records before accepting new domains.
 
-## Installation
+## 🛠️ Building & Installation
 
+### Prerequisites
+- Rust (latest stable)
+- OpenSSL (libssl-dev)
+- Build Essentials (gcc, make)
+
+### Build from Source
 ```bash
-curl -sL https://get.zexio.com/agent | sudo bash -s -- --token=YOUR_ORG_TOKEN
+cargo build --release
+# Binary will be at: target/release/zexio-agent
 ```
 
-### Manual Run
+### 🚀 Deployment Options
+
+#### Option A: Auto-Registration (Connected Mode)
+Registers the agent with Zexio Cloud for remote management.
 ```bash
+curl -sL https://get.zexio.com/agent | sudo bash -s -- --token=zxp_YOUR_TOKEN
+```
+- Requires a Provisioning Token (`zxp_...`) from the Dashboard.
+- Automatically sets up identity and secure tunnel.
+
+#### Option B: Standalone Mode (Offline/Local)
+Runs the agent in isolation without connecting to Zexio Cloud.
+```bash
+curl -sL https://get.zexio.com/agent | sudo bash -s -- --standalone
+```
+- No token required.
+- Dashboard features (Stats, Remote Deploy) will be disabled.
+- Useful for local development or air-gapped environments.
+
+## ⚙️ Configuration
+
+The agent is configured via `config.yaml` or Environment Variables.
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SERVER_PORT` | Port for Management API | `3000` |
+| `MESH_PORT` | Port for Service Proxy | `8080` |
+| `ZEXIO_CLOUD__API_URL` | Zexio Cloud API Endpoint | `https://api.zexio.io` |
+| `ZEXIO_CLOUD__TOKEN` | Provisioning Token | `None` |
+
+### Manual Installation (Custom)
+You can manually run the agent without the installer script by providing the token via environment variable:
+
+```bash
+export ZEXIO_CLOUD__TOKEN="zxp_YOUR_TOKEN"
+export ZEXIO_CLOUD__API_URL="http://localhost:4000" # Optional: Dev override
+
 ./zexio-agent
 ```

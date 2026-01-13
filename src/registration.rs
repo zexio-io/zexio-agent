@@ -34,13 +34,20 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
     }
 
     // 2. Check for Provisioning Token
+    // 2. Check for Provisioning Token
+    // Priority: Env/Config (settings.cloud.token) -> File (/etc/zexio/provisioning_token)
     let token_path = "/etc/zexio/provisioning_token";
-    if !Path::new(token_path).exists() {
-        info!("No provisioning token found. Waiting for manual configuration.");
+    
+    let token = if let Some(t) = &settings.cloud.token {
+        info!("Using provisioning token from configuration/env.");
+        t.clone()
+    } else if std::path::Path::new(token_path).exists() {
+        info!("Found provisioning token file.");
+        fs::read_to_string(token_path)?.trim().to_string()
+    } else {
+        info!("No provisioning token found (Env or File). Waiting for manual configuration.");
         return Ok(());
-    }
-
-    let token = fs::read_to_string(token_path)?.trim().to_string();
+    };
     info!("Found provisioning token. Attempting registration...");
 
     // 3. Gather System Info

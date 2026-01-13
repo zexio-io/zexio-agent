@@ -2,7 +2,6 @@ name: Build and Release
 
 on:
   push:
-    # branches: [ "main" ]
     paths:
       - 'src/**'
       - 'Cargo.toml'
@@ -12,78 +11,121 @@ on:
   workflow_dispatch:
 
 env:
-  AWS_ACCESS_KEY_ID: ef1cfe871f95d5da8a3fb6e8b323590a
-  AWS_SECRET_ACCESS_KEY: 6904e7b071a41e009c391c5ae80bde1dc6e075df5da1fc20ada7835f1c76f639
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: zexio_agent
+  S3_BUCKET: vectis-file
   AWS_DEFAULT_REGION: ap-southeast-1
   AWS_ENDPOINT_URL: https://iktmmqjgbygouyxdcrzh.storage.supabase.co/storage/v1/s3
-  S3_BUCKET: vectis-file
 
 jobs:
   build:
-    name: Build Rust Binary
-    runs-on: ubuntu-latest
-    
+    name: Build ${{ matrix.target }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux AMD64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            artifact_name: zexio-agent-linux-amd64
+            use_cross: true
+
+          # Linux ARM64 (Raspberry Pi / AWS Graviton)
+          - os: ubuntu-latest
+            target: aarch64-unknown-linux-gnu
+            artifact_name: zexio-agent-linux-arm64
+            use_cross: true
+
+          # Windows AMD64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            artifact_name: zexio-agent-windows-amd64.exe
+            use_cross: false
+            extension: .exe
+
+          # macOS AMD64 (Intel)
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            artifact_name: zexio-agent-macos-amd64
+            use_cross: false
+
+          # macOS ARM64 (Apple Silicon)
+          - os: macos-14
+            target: aarch64-apple-darwin
+            artifact_name: zexio-agent-macos-arm64
+            use_cross: false
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
           toolchain: stable
+          targets: ${{ matrix.target }}
 
-      - name: Cache cargo registry
+      - name: Cache Cargo
         uses: actions/cache@v4
         with:
-          path: ~/.cargo/registry
-          key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Cache cargo index
-        uses: actions/cache@v4
+      - name: Build Binary
+        uses: actions-rs/cargo@v1
         with:
-          path: ~/.cargo/git
-          key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
+          use-cross: ${{ matrix.use_cross }}
+          command: build
+          args: --release --target ${{ matrix.target }}
 
-      - name: Cache target directory
-        uses: actions/cache@v4
-        with:
-          path: target
-          key: ${{ runner.os }}-target-${{ hashFiles('**/Cargo.lock') }}
+      - name: Prepare Artifact
+        shell: bash
+        run: |
+          mkdir -p dist
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            cp target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}.exe dist/${{ matrix.artifact_name }}
+          else
+            cp target/${{ matrix.target }}/release/${{ env.BINARY_NAME }} dist/${{ matrix.artifact_name }}
+          fi
 
-      - name: Build release binary
-        run: cargo build --release
-
-      - name: Rename binary
-        run: mv target/release/plane vectis-node
-
-      # Upload artifact for non-tag pushes (testing)
-      - name: Upload Binary Artifact
-        if: "!startsWith(github.ref, 'refs/tags/')"
+      - name: Store Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: vectis-node-${{ github.sha }}
-          path: vectis-node
+          name: ${{ matrix.artifact_name }}
+          path: dist/${{ matrix.artifact_name }}
           retention-days: 5
 
-      # Release steps (only on tag push)
-      - name: Compress binary for S3
-        if: startsWith(github.ref, 'refs/tags/')
-        run: tar -czvf vectis-node-${{ github.ref_name }}-linux-amd64.tar.gz vectis-node
+  release:
+    name: Upload to Storage (S3)
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Download All Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
 
       - name: Upload to S3
-        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         run: |
-          aws s3 cp vectis-node-${{ github.ref_name }}-linux-amd64.tar.gz \
-            s3://${{ env.S3_BUCKET }}/releases/vectis-node/${{ github.ref_name }}/vectis-node-linux-amd64.tar.gz \
-            --endpoint-url ${{ env.AWS_ENDPOINT_URL }}
-
-      # - name: Upload Release Asset
-      #   if: startsWith(github.ref, 'refs/tags/')
-      #   uses: actions/upload-release-asset@v1
-      #   env:
-      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      #   with:
-      #     upload_url: ${{ steps.create_release.outputs.upload_url }}
-      #     asset_path: ./vectis-node
-      #     asset_name: vectis-node
-      #     asset_content_type: application/octet-stream
+          # Install AWS CLI
+          sudo apt-get update && sudo apt-get install -y awscli
+          
+          # Iterate and Upload
+          for dir in artifacts/*; do
+            filename=$(basename "$dir")
+            echo "Uploading $filename..."
+            # Adjust upload path structure as needed
+            aws s3 cp "artifacts/$filename/$filename" \
+              "s3://${{ env.S3_BUCKET }}/releases/agent/${{ github.ref_name }}/$filename" \
+              --endpoint-url ${{ env.AWS_ENDPOINT_URL }}
+          done
