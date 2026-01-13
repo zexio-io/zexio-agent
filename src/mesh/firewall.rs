@@ -1,5 +1,5 @@
-// use std::process::Command; // Unused
-// use tracing::{info, error, debug}; // Unused
+use std::process::Command;
+use tracing::{info, debug};
 use anyhow::Result;
 
 pub struct FirewallManager;

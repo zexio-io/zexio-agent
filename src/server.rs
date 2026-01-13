@@ -2,7 +2,6 @@ use axum::{
     routing::{get, post, delete},
     Router,
 };
-};
 use crate::{state::AppState, config::Settings, project, deploy, services, monitor, middleware, streams};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
