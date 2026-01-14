@@ -10,6 +10,7 @@ pub struct AppState {
     pub worker_secret: String,
     pub redis: redis::Client,
     pub mesh_jwt_secret: String,
+
 }
 
 impl AppState {
@@ -33,6 +34,9 @@ impl AppState {
         // Mesh JWT Secret
         let mesh_jwt_secret = std::env::var("MESH_JWT_SECRET").unwrap_or_else(|_| "zexio-mesh-secret-key".to_string());
 
+        // Initialize Plugin Manager
+
+
         Ok(Self {
             store: crate::storage::ProjectStore::new(&settings.storage.projects_dir),
             settings,
@@ -40,6 +44,7 @@ impl AppState {
             worker_secret,
             redis,
             mesh_jwt_secret,
+
         })
     }
 }

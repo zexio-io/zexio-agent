@@ -23,6 +23,7 @@ pub struct ServerSettings {
 #[derive(Debug, Deserialize, Clone)]
 pub struct StorageSettings {
     pub projects_dir: String,
+
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -42,6 +43,7 @@ pub struct CloudSettings {
     pub token: Option<String>,
     pub worker_id: Option<String>,
 }
+
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
@@ -68,6 +70,7 @@ impl Settings {
             
             // Default Storage Paths (Production)
             .set_default("storage.projects_dir", "/zexio/apps")?
+
             .set_default("storage.config_dir", "/etc/zexio")?
             
             // Default Secrets Paths

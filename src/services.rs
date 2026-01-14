@@ -3,34 +3,70 @@ use axum::{
     response::IntoResponse,
     http::StatusCode,
 };
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::process::Command;
 use crate::{state::AppState, errors::AppError};
 use tracing::{info, error};
 
 #[derive(Deserialize)]
 pub struct InstallServiceRequest {
-    pub service: String, // "postgres", "redis", "nodejs"
+    pub service: String, 
+}
+
+#[derive(Serialize)]
+pub struct ServiceResponse {
+    pub status: String,
+    pub service: String,
+    pub command: String,
 }
 
 pub async fn install_service_handler(
     State(_state): State<AppState>,
     Json(payload): Json<InstallServiceRequest>,
 ) -> Result<impl IntoResponse, AppError> {
-    
     let service = payload.service.as_str();
     info!("Request to install service: {}", service);
 
-    let mut cmd = Command::new("bash");
-    cmd.arg("-c");
+    match install_package(service).await {
+        Ok(cmd_executed) => {
+            info!("Service {} installed successfully via: {}", service, cmd_executed);
+            Ok((StatusCode::OK, Json(ServiceResponse {
+                status: "installed".to_string(),
+                service: service.to_string(),
+                command: cmd_executed,
+            })))
+        }
+        Err(e) => {
+            error!("Installation failed: {}", e);
+            Err(AppError::InternalServerError) 
+        }
+    }
+}
 
-    // Important: We are running apt-get/curl | bash commands here.
-    // The worker MUST run as root or have passwordless sudo for specific commands.
-    // Since `install.sh` and `DEPLOYMENT.md` setup the user `worker`, `apt-get` will fail 
-    // unless `worker` has sudo rights.
-    // Recommendation: allow `worker` to run specific install scripts or use `sudo -n`.
-    
-    // Command string logic
+async fn install_package(service: &str) -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        install_linux(service).await
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        install_macos(service).await
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        install_windows(service).await
+    }
+
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        Err("Unsupported operating system".to_string())
+    }
+}
+
+#[cfg(target_os = "linux")]
+async fn install_linux(service: &str) -> Result<String, String> {
     let script = match service {
         "nodejs" => r#"
             if ! command -v node &> /dev/null; then
@@ -59,22 +95,192 @@ pub async fn install_service_handler(
                 echo "already installed"
             fi
         "#,
-        _ => return Err(AppError::BadRequest("Unknown service".into())),
+        name => {
+            if !name.chars().all(|c| c.is_alphanumeric() || c == '-') {
+                return Err("Invalid service name".to_string());
+            }
+            return install_linux_generic(name).await;
+        }
     };
 
-    // Execute
-    // Note: We use `sudo -E` assuming the worker user has sudo access to apt-get/systemctl without password.
-    // This is a requirement for this feature to work safely.
-    let output = cmd.arg(script).output().map_err(|_e| AppError::InternalServerError)?;
+    let output = Command::new("bash")
+        .arg("-c")
+        .arg(script)
+        .output()
+        .map_err(|e| e.to_string())?;
 
     if !output.status.success() {
-        let stderr = String::from_utf8_lossy(&output.stderr);
-        error!("Installation failed: {}", stderr);
-        return Err(AppError::InternalServerError); // Simplify error for security? Or return log?
-        // AppError::BadRequest(format!("Install failed: {}", stderr).into())
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    
+    // Return a descriptive string for complex scripts
+    Ok(format!("bash script execution for {}", service))
+}
+
+#[cfg(target_os = "linux")]
+async fn install_linux_generic(service: &str) -> Result<String, String> {
+     let script = format!(
+        "sudo -E apt-get install -y {}", 
+        service
+    );
+    let output = Command::new("bash")
+        .arg("-c")
+        .arg(&script)
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    Ok(script)
+}
+
+#[cfg(target_os = "macos")]
+async fn install_macos(service: &str) -> Result<String, String> {
+    if !service.chars().all(|c| c.is_alphanumeric() || c == '-') {
+        return Err("Invalid service name".to_string());
     }
 
-    info!("Service {} installed successfully", service);
+    let cmd_str = format!("brew install {}", service);
+    let output = Command::new("brew")
+        .arg("install")
+        .arg(service)
+        .output()
+        .map_err(|e| e.to_string())?;
 
-    Ok((StatusCode::OK, format!("Service {} installed", service)))
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    Ok(cmd_str)
+}
+
+#[cfg(target_os = "windows")]
+async fn install_windows(service: &str) -> Result<String, String> {
+    if !service.chars().all(|c| c.is_alphanumeric() || c == '-') {
+        return Err("Invalid service name".to_string());
+    }
+
+    let cmd_str = format!("choco install {} -y", service);
+    let output = Command::new("choco")
+        .arg("install")
+        .arg(service)
+        .arg("-y")
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    Ok(cmd_str)
+}
+
+#[derive(Deserialize)]
+pub struct UninstallServiceRequest {
+    pub service: String,
+}
+
+pub async fn uninstall_service_handler(
+    State(_state): State<AppState>,
+    Json(payload): Json<UninstallServiceRequest>,
+) -> Result<impl IntoResponse, AppError> {
+    let service = payload.service.as_str();
+    info!("Request to UNINSTALL service: {}", service);
+
+    match uninstall_package(service).await {
+        Ok(cmd_executed) => {
+            info!("Service {} uninstalled successfully via: {}", service, cmd_executed);
+            Ok((StatusCode::OK, Json(ServiceResponse {
+                status: "uninstalled".to_string(),
+                service: service.to_string(),
+                command: cmd_executed,
+            })))
+        }
+        Err(e) => {
+            error!("Uninstallation failed: {}", e);
+            Err(AppError::InternalServerError) 
+        }
+    }
+}
+
+async fn uninstall_package(service: &str) -> Result<String, String> {
+    #[cfg(target_os = "linux")]
+    {
+        uninstall_linux(service).await
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        uninstall_macos(service).await
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        uninstall_windows(service).await
+    }
+
+    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
+    {
+        Err("Unsupported operating system".to_string())
+    }
+}
+
+#[cfg(target_os = "linux")]
+async fn uninstall_linux(service: &str) -> Result<String, String> {
+     if !service.chars().all(|c| c.is_alphanumeric() || c == '-') {
+        return Err("Invalid service name".to_string());
+    }
+
+     let script = format!(
+        "sudo -E apt-get remove -y {}", 
+        service
+    );
+    let output = Command::new("bash")
+        .arg("-c")
+        .arg(&script)
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    Ok(script)
+}
+
+#[cfg(target_os = "macos")]
+async fn uninstall_macos(service: &str) -> Result<String, String> {
+    if !service.chars().all(|c| c.is_alphanumeric() || c == '-') {
+        return Err("Invalid service name".to_string());
+    }
+
+    let cmd_str = format!("brew uninstall {}", service);
+    let output = Command::new("brew")
+        .arg("uninstall")
+        .arg(service)
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    Ok(cmd_str)
+}
+
+#[cfg(target_os = "windows")]
+async fn uninstall_windows(service: &str) -> Result<String, String> {
+    if !service.chars().all(|c| c.is_alphanumeric() || c == '-') {
+        return Err("Invalid service name".to_string());
+    }
+
+    let cmd_str = format!("choco uninstall {} -y", service);
+    let output = Command::new("choco")
+        .arg("uninstall")
+        .arg(service)
+        .arg("-y")
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    Ok(cmd_str)
 }

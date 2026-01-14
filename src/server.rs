@@ -10,7 +10,7 @@ use axum::middleware as axum_middleware;
 
 
 pub async fn start(settings: Settings) -> anyhow::Result<()> {
-    // Application state (no database needed!)
+    // Application state
     let state = AppState::new(settings.clone())?;
 
     // Protected routes (require worker authentication)
@@ -30,6 +30,7 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
         .route("/projects/:id/deploy", post(deploy::project_deploy_handler))
         .route("/projects/:id/webhook", post(deploy::project_deploy_handler))
         .route("/services/install", post(services::install_service_handler))
+        .route("/services/uninstall", post(services::uninstall_service_handler))
         .route("/firewall/configure", post(monitor::configure_firewall_handler))
         .route("/sync", post(monitor::sync_handler))
         .layer(axum_middleware::from_fn_with_state(
@@ -51,26 +52,44 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
         .with_state(state.clone());
 
     let mgmt_addr: SocketAddr = format!("{}:{}", settings.server.host, settings.server.port).parse()?;
-    let mesh_addr: SocketAddr = format!("{}:{}", settings.server.host, settings.server.mesh_port).parse()?;
     
     info!("Management API listening on {}", mgmt_addr);
-    info!("Service Mesh Proxy listening on {}", mesh_addr);
-
-    // Create Mesh Proxy Router
-    let mesh_app = Router::new()
-        .fallback(crate::mesh::mesh_proxy_handler)
-        .with_state(state);
+    info!("Service Mesh Proxy (Pingora) listening on port {}", settings.server.mesh_port);
 
     let mgmt_listener = TcpListener::bind(mgmt_addr).await?;
-    let mesh_listener = TcpListener::bind(mesh_addr).await?;
-
     let mgmt_server = axum::serve(mgmt_listener, app);
-    let mesh_server = axum::serve(mesh_listener, mesh_app);
 
-    tokio::try_join!(
-        async { mgmt_server.await.map_err(anyhow::Error::from) },
-        async { mesh_server.await.map_err(anyhow::Error::from) }
-    )?;
+    // 1. Spawn Axum (Management API)
+    tokio::spawn(async move {
+        if let Err(e) = mgmt_server.await {
+            tracing::error!("Management API failed: {}", e);
+        }
+    });
+
+    // 2. Run Pingora (Mesh Proxy)
+    // Pingora manages its own runtime/threads, so we run it in a blocking task 
+    // to avoid blocking the Tokio executor of the main thread (although main is effectively waiting here).
+    let mesh_port = settings.server.mesh_port;
+    let state_clone = state.clone();
+
+    tokio::task::spawn_blocking(move || {
+        use pingora::server::Server;
+        use pingora::proxy::http_proxy_service;
+        use pingora::services::Service;
+        use crate::mesh::zexio_mesh::ZexioMeshLogic;
+
+        let mut server = Server::new(None).expect("Failed to initialize Pingora server");
+        server.bootstrap();
+
+        let mut proxy = http_proxy_service(
+            &server.configuration,
+            ZexioMeshLogic { state: state_clone }
+        );
+        proxy.add_tcp(&format!("0.0.0.0:{}", mesh_port));
+
+        server.add_service(proxy);
+        server.run_forever();
+    }).await?;
 
     Ok(())
 }
