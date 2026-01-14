@@ -137,6 +137,10 @@ for i in "$@"; do
       ZEXIO_TOKEN="${i#*=}"
       shift
       ;;
+    --id=*)
+      WORKER_ID="${i#*=}"
+      shift
+      ;;
     --standalone)
       STANDALONE_MODE=true
       shift
@@ -158,6 +162,13 @@ elif [ -n "$ZEXIO_TOKEN" ]; then
     chown worker:worker /etc/zexio/provisioning_token
 
     echo "✅ Token saved to /etc/zexio/provisioning_token"
+
+    if [ -n "$WORKER_ID" ]; then
+        echo "$WORKER_ID" > /etc/zexio/worker_id
+        chmod 600 /etc/zexio/worker_id
+        chown worker:worker /etc/zexio/worker_id
+        echo "✅ Worker ID saved to /etc/zexio/worker_id"
+    fi
 fi
 
 echo -e "${GREEN}✨ Installation Complete! Zexio Agent is online.${NC}"
