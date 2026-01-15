@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "zexio-agent",
+  "productName": "Zexio Agent",
   "version": "0.2.1",
-  "identifier": "com.mimamghozalie.gui",
+  "identifier": "io.zexio.agent",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
