@@ -1,18 +1,20 @@
 use axum::{
-    extract::State,
-    http::{Request, StatusCode},
+    body::Body,
+    extract::{Request, State},
+    http::StatusCode,
     middleware::Next,
     response::Response,
 };
-use crate::state::AppState;
+use crate::{state::AppState, crypto::Crypto};
+use tracing::warn;
 
 /// Smart authentication middleware that:
 /// - Skips auth in standalone mode (local development)
 /// - Requires auth in cloud mode (production)
-pub async fn smart_auth_middleware<B>(
+pub async fn smart_auth_middleware(
     State(state): State<AppState>,
-    request: Request<B>,
-    next: Next<B>,
+    request: Request,
+    next: Next,
 ) -> Result<Response, StatusCode> {
     // Check if we're in cloud mode
     let is_cloud_mode = state.settings.cloud.token.is_some() 
@@ -28,31 +30,33 @@ pub async fn smart_auth_middleware<B>(
 }
 
 /// Original worker authentication (for cloud mode)
-pub async fn worker_auth_middleware<B>(
+pub async fn worker_auth_middleware(
     State(state): State<AppState>,
-    request: Request<B>,
-    next: Next<B>,
+    request: Request,
+    next: Next,
 ) -> Result<Response, StatusCode> {
-    // Extract signature from header
+    // Get signature from header before moving request
     let signature = request
         .headers()
-        .get("x-zexio-signature")
+        .get("X-Signature")
         .and_then(|v| v.to_str().ok())
+        .map(|s| s.to_string())
         .ok_or(StatusCode::UNAUTHORIZED)?;
 
-    // Get request body for verification (simplified - in real impl, clone body)
-    // For now, we'll just check if signature exists
-    // In production, verify HMAC signature of request body
-    
-    if signature.is_empty() {
+    // Get body for verification
+    let (parts, body) = request.into_parts();
+    let bytes = axum::body::to_bytes(body, usize::MAX)
+        .await
+        .map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    // Verify signature
+    if !Crypto::verify_signature(&state.worker_secret, &bytes, &signature) {
+        warn!("Invalid worker signature");
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    // TODO: Implement proper HMAC verification
-    // let body_bytes = ...; // extract body
-    // if !Crypto::verify_signature(&state.worker_secret, &body_bytes, signature) {
-    //     return Err(StatusCode::UNAUTHORIZED);
-    // }
-
+    // Reconstruct request with body
+    let request = Request::from_parts(parts, Body::from(bytes));
+    
     Ok(next.run(request).await)
 }
