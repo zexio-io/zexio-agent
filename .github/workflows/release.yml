@@ -130,8 +130,8 @@ jobs:
           ls -la gui/src-tauri/binaries/
 
       - name: Build GUI (Tauri)
-        # Skip GUI build for Linux ARM64 (cross-compilation issues)
-        if: matrix.target != 'aarch64-unknown-linux-gnu'
+        # Run GUI build ONLY for macOS and Windows (Linux is headless/CLI only)
+        if: runner.os == 'macOS' || runner.os == 'Windows'
         working-directory: ./gui
         run: |
           npm install
