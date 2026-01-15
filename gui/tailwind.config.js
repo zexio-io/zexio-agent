@@ -44,5 +44,13 @@ export default {
             },
         },
     },
+    safelist: [
+        'text-primary',
+        'bg-primary',
+        'border-primary',
+        'hover:bg-primary',
+        'hover:border-primary',
+        'focus:border-primary',
+    ],
     plugins: [],
 }
