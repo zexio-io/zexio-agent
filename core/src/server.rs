@@ -66,9 +66,7 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
         .route("/stats", get(monitor::global_stats_handler))
         .route("/stats/stream", get(monitor::global_stats_stream)) // SSE!
         .route("/system/logs", get(streams::worker_logs_handler)) // JSON (one-time)
-        .route("/system/logs/stream", get(streams::worker_logs_stream)) // SSE!
-        .route("/tunnel/start", post(crate::tunnel::start_tunnel_handler)) // Moved to public
-        .route("/tunnel/stop", post(crate::tunnel::stop_tunnel_handler)); // Moved to public
+        .route("/system/logs/stream", get(streams::worker_logs_stream)); // SSE!
 
     // CORS configuration for GUI access
     let cors = CorsLayer::new()
@@ -95,8 +93,6 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
     info!("   GET  /health              - Health check");
     info!("   GET  /stats               - System statistics");
     info!("   GET  /stats/stream        - Real-time stats (SSE)");
-    info!("   POST /tunnel/start        - Start tunnel");
-    info!("   POST /tunnel/stop         - Stop tunnel");
     info!("");
     info!("✨ Zexio Agent is ready!");
 

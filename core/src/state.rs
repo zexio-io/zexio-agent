@@ -11,7 +11,6 @@ pub struct AppState {
     pub worker_secret: String,
     pub redis: redis::Client,
     pub mesh_jwt_secret: String,
-    pub tunnel_manager: std::sync::Arc<crate::tunnel::TunnelManager>,
 }
 
 impl AppState {
@@ -42,7 +41,6 @@ impl AppState {
             worker_secret,
             redis,
             mesh_jwt_secret,
-            tunnel_manager: std::sync::Arc::new(crate::tunnel::TunnelManager::new()),
         })
     }
 

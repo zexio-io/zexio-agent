@@ -16,12 +16,7 @@ pub struct SystemStats {
 
 // MemoryStats and StorageStats structs are no longer needed as per ROUTES.md
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct TunnelStartRequest {
-    pub provider: String,
-    pub token: String,
-    pub local_port: Option<u16>,
-}
+// MemoryStats and StorageStats structs are no longer needed as per ROUTES.md
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -63,63 +58,6 @@ async fn health_check() -> Result<String, String> {
     Ok(status)
 }
 
-#[tauri::command]
-async fn start_tunnel(
-    provider: String,
-    token: String,
-    local_port: Option<u16>,
-) -> Result<String, String> {
-    let client = reqwest::Client::new();
-    let request_body = TunnelStartRequest {
-        provider,
-        token,
-        local_port,
-    };
-
-    let response = client
-        .post(format!("{}/tunnel/start", AGENT_API_URL))
-        .json(&request_body)
-        .send()
-        .await
-        .map_err(|e| format!("Failed to start tunnel: {}", e))?;
-
-    // Return the raw JSON body string on success, or error details
-    if response.status().is_success() {
-        let text = response
-            .text()
-            .await
-            .map_err(|e| format!("Failed to read success response: {}", e))?;
-        Ok(text)
-    } else {
-        let error = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "Unknown error".to_string());
-        Err(format!("Failed to start tunnel: {}", error))
-    }
-}
-
-#[tauri::command]
-async fn stop_tunnel() -> Result<String, String> {
-    let client = reqwest::Client::new();
-
-    let response = client
-        .post(format!("{}/tunnel/stop", AGENT_API_URL))
-        .send()
-        .await
-        .map_err(|e| format!("Failed to stop tunnel: {}", e))?;
-
-    if response.status().is_success() {
-        Ok("Tunnel stopped successfully".to_string())
-    } else {
-        let error = response
-            .text()
-            .await
-            .unwrap_or_else(|_| "Unknown error".to_string());
-        Err(format!("Failed to stop tunnel: {}", error))
-    }
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -127,9 +65,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             health_check,
-            get_system_stats,
-            start_tunnel, // signature updated
-            stop_tunnel
+            get_system_stats
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
