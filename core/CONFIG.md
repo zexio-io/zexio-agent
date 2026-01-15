@@ -32,7 +32,7 @@ These files are critical for the agent's operation and identity.
 
 You can override defaults using environment variables:
 
-- `SERVER_PORT`: Port for the HTTP API (Default: `8081`).
-- `MESH_PORT`: Port for the internal Mesh network (Default: `8082`).
+- `SERVER_PORT`: Port for the Management API (Default: `8081`).
+- `MESH_PORT`: Port for the Mesh Proxy (Default: `8082`).
 - `ZEXIO_CLOUD__API_URL`: Override the Zexio Cloud API URL (Default: `https://api.zexio.io`).
 - `RUN_MODE`: `production` or `development`.
