@@ -88,7 +88,8 @@ jobs:
         with:
           use-cross: ${{ matrix.use_cross }}
           command: build
-          args: --release --target ${{ matrix.target }}
+          # Explicitly target the zexio_agent core package to avoid building GUI crates
+          args: --release --target ${{ matrix.target }} -p zexio_agent
 
       - name: Prepare Sidecar
         shell: bash
