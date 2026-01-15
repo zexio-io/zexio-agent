@@ -20,11 +20,12 @@ pub struct SystemStats {
     disk_used: u64,
     disk_total: u64,
     disk_percent: f32,
+    total_projects: u32,
 }
 
 // JSON endpoint (one-time)
 pub async fn global_stats_handler(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> Result<Json<SystemStats>, AppError> {
     let mut sys = System::new_with_specifics(
         RefreshKind::new()
@@ -61,6 +62,12 @@ pub async fn global_stats_handler(
         0.0
     };
 
+    // Count projects
+    let total_projects = match state.store.list().await {
+        Ok(projects) => projects.len() as u32,
+        Err(_) => 0,
+    };
+
     Ok(Json(SystemStats {
         cpu_usage,
         memory_used,
@@ -69,12 +76,13 @@ pub async fn global_stats_handler(
         disk_used,
         disk_total,
         disk_percent,
+        total_projects,
     }))
 }
 
 // SSE endpoint (real-time updates every 2 seconds)
 pub async fn global_stats_stream(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let stream = async_stream::stream! {
         loop {
@@ -113,6 +121,12 @@ pub async fn global_stats_stream(
                 0.0
             };
 
+            // Count projects
+            let total_projects = match state.store.list().await {
+                Ok(projects) => projects.len() as u32,
+                Err(_) => 0,
+            };
+
             let stats = SystemStats {
                 cpu_usage,
                 memory_used,
@@ -121,6 +135,7 @@ pub async fn global_stats_stream(
                 disk_used,
                 disk_total,
                 disk_percent,
+                total_projects,
             };
 
             if let Ok(json) = serde_json::to_string(&stats) {
@@ -200,7 +215,7 @@ pub struct SyncResponse {
 
 // Manual sync endpoint for dashboard to trigger
 pub async fn sync_handler(
-    State(_state): State<AppState>,
+    State(state): State<AppState>,
 ) -> Result<Json<SyncResponse>, AppError> {
     // Reuse global_stats logic
     let mut sys = System::new_with_specifics(
@@ -235,6 +250,12 @@ pub async fn sync_handler(
         0.0
     };
 
+    // Count projects
+    let total_projects = match state.store.list().await {
+        Ok(projects) => projects.len() as u32,
+        Err(_) => 0,
+    };
+
     let stats = SystemStats {
         cpu_usage,
         memory_used,
@@ -243,6 +264,7 @@ pub async fn sync_handler(
         disk_used,
         disk_total,
         disk_percent,
+        total_projects,
     };
 
     Ok(Json(SyncResponse {
@@ -283,6 +305,7 @@ fn get_dummy_stats() -> SystemStats {
         disk_used: 0,
         disk_total: 0,
         disk_percent: 0.0,
+        total_projects: 0,
     }
 }
 

@@ -1,21 +1,21 @@
 import { Cpu, HardDrive, Database } from "lucide-react";
 
-interface SystemStatsProps {
-    cpu: number;
-    memory: {
-        used: number;
-        total: number;
-    };
-    storage: {
-        used: number;
-        total: number;
-    };
+interface SystemStatsData {
+    cpu_usage: number;
+    memory_used: number;
+    memory_total: number;
+    memory_percent: number;
+    disk_used: number;
+    disk_total: number;
+    disk_percent: number;
+    total_projects: number;
 }
 
-export function SystemStats({ cpu, memory, storage }: SystemStatsProps) {
-    const memoryPercent = (memory.used / memory.total) * 100;
-    const storagePercent = (storage.used / storage.total) * 100;
+interface SystemStatsProps {
+    stats: SystemStatsData;
+}
 
+export function SystemStats({ stats }: SystemStatsProps) {
     const formatBytes = (bytes: number) => {
         if (bytes === 0) return '0 B';
         const k = 1024;
@@ -36,15 +36,15 @@ export function SystemStats({ cpu, memory, storage }: SystemStatsProps) {
             <div className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-muted-foreground">CPU</span>
-                    <Cpu className={`w-4 h-4 ${getStatusColor(cpu)}`} />
+                    <Cpu className={`w-4 h-4 ${getStatusColor(stats.cpu_usage)}`} />
                 </div>
-                <p className={`text-2xl font-bold ${getStatusColor(cpu)}`}>
-                    {cpu.toFixed(1)}%
+                <p className={`text-2xl font-bold ${getStatusColor(stats.cpu_usage)}`}>
+                    {stats.cpu_usage.toFixed(1)}%
                 </p>
                 <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
                     <div
-                        className={`h-full ${getStatusColor(cpu)} bg-current transition-all duration-300`}
-                        style={{ width: `${cpu}%` }}
+                        className={`h-full ${getStatusColor(stats.cpu_usage)} bg-current transition-all duration-300`}
+                        style={{ width: `${stats.cpu_usage}%` }}
                     />
                 </div>
             </div>
@@ -53,18 +53,18 @@ export function SystemStats({ cpu, memory, storage }: SystemStatsProps) {
             <div className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-muted-foreground">Memory</span>
-                    <HardDrive className={`w-4 h-4 ${getStatusColor(memoryPercent)}`} />
+                    <HardDrive className={`w-4 h-4 ${getStatusColor(stats.memory_percent)}`} />
                 </div>
-                <p className={`text-2xl font-bold ${getStatusColor(memoryPercent)}`}>
-                    {memoryPercent.toFixed(1)}%
+                <p className={`text-2xl font-bold ${getStatusColor(stats.memory_percent)}`}>
+                    {stats.memory_percent.toFixed(1)}%
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                    {formatBytes(memory.used)} / {formatBytes(memory.total)}
+                    {formatBytes(stats.memory_used)} / {formatBytes(stats.memory_total)}
                 </p>
                 <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
                     <div
-                        className={`h-full ${getStatusColor(memoryPercent)} bg-current transition-all duration-300`}
-                        style={{ width: `${memoryPercent}%` }}
+                        className={`h-full ${getStatusColor(stats.memory_percent)} bg-current transition-all duration-300`}
+                        style={{ width: `${stats.memory_percent}%` }}
                     />
                 </div>
             </div>
@@ -73,18 +73,18 @@ export function SystemStats({ cpu, memory, storage }: SystemStatsProps) {
             <div className="bg-card border border-border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                     <span className="text-xs text-muted-foreground">Storage</span>
-                    <Database className={`w-4 h-4 ${getStatusColor(storagePercent)}`} />
+                    <Database className={`w-4 h-4 ${getStatusColor(stats.disk_percent)}`} />
                 </div>
-                <p className={`text-2xl font-bold ${getStatusColor(storagePercent)}`}>
-                    {storagePercent.toFixed(1)}%
+                <p className={`text-2xl font-bold ${getStatusColor(stats.disk_percent)}`}>
+                    {stats.disk_percent.toFixed(1)}%
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                    {formatBytes(storage.used)} / {formatBytes(storage.total)}
+                    {formatBytes(stats.disk_used)} / {formatBytes(stats.disk_total)}
                 </p>
                 <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
                     <div
-                        className={`h-full ${getStatusColor(storagePercent)} bg-current transition-all duration-300`}
-                        style={{ width: `${storagePercent}%` }}
+                        className={`h-full ${getStatusColor(stats.disk_percent)} bg-current transition-all duration-300`}
+                        style={{ width: `${stats.disk_percent}%` }}
                     />
                 </div>
             </div>

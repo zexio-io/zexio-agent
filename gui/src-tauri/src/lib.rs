@@ -1,30 +1,26 @@
 use serde::{Deserialize, Serialize};
 
-const AGENT_API_URL: &str = "http://localhost:8081";
+const AGENT_API_URL: &str = "http://127.0.0.1:8081";
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct SystemStats {
-    pub cpu: f64,
-    pub memory: MemoryStats,
-    pub storage: StorageStats,
+    pub cpu_usage: f64,
+    pub memory_used: u64,
+    pub memory_total: u64,
+    pub memory_percent: f64,
+    pub disk_used: u64,
+    pub disk_total: u64,
+    pub disk_percent: f64,
+    pub total_projects: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct MemoryStats {
-    pub used: u64,
-    pub total: u64,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct StorageStats {
-    pub used: u64,
-    pub total: u64,
-}
+// MemoryStats and StorageStats structs are no longer needed as per ROUTES.md
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TunnelStartRequest {
     pub provider: String,
     pub token: String,
+    pub local_port: Option<u16>,
 }
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -68,9 +64,9 @@ async fn health_check() -> Result<String, String> {
 }
 
 #[tauri::command]
-async fn start_tunnel(provider: String, token: String) -> Result<String, String> {
+async fn start_tunnel(provider: String, token: String, local_port: Option<u16>) -> Result<String, String> {
     let client = reqwest::Client::new();
-    let request_body = TunnelStartRequest { provider, token };
+    let request_body = TunnelStartRequest { provider, token, local_port };
     
     let response = client
         .post(format!("{}/tunnel/start", AGENT_API_URL))
@@ -79,8 +75,10 @@ async fn start_tunnel(provider: String, token: String) -> Result<String, String>
         .await
         .map_err(|e| format!("Failed to start tunnel: {}", e))?;
     
+    // Return the raw JSON body string on success, or error details
     if response.status().is_success() {
-        Ok("Tunnel started successfully".to_string())
+        let text = response.text().await.map_err(|e| format!("Failed to read success response: {}", e))?;
+        Ok(text)
     } else {
         let error = response
             .text()
@@ -119,7 +117,7 @@ pub fn run() {
             greet,
             health_check,
             get_system_stats,
-            start_tunnel,
+            start_tunnel, // signature updated
             stop_tunnel
         ])
         .run(tauri::generate_context!())

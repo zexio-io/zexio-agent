@@ -3,9 +3,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { OnboardingScreen } from "./components/OnboardingScreen";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
-import { LogoBrand } from "./components/LogoBrand";
-import { TunnelToggle } from "./components/TunnelToggle";
-import { TunnelStats } from "./components/TunnelStats";
 import { SettingsPanel } from "./components/SettingsPanel";
 import { SystemStats } from "./components/SystemStats";
 
@@ -19,29 +16,35 @@ interface AppConfig {
   meshPort?: number;
 }
 
+// Matches SystemStats in lib.rs / ROUTES.md
 interface SystemStatsData {
-  cpu: number;
-  memory: {
-    used: number;
-    total: number;
-  };
-  storage: {
-    used: number;
-    total: number;
-  };
+  cpu_usage: number;
+  memory_used: number;
+  memory_total: number;
+  memory_percent: number;
+  disk_used: number;
+  disk_total: number;
+  disk_percent: number;
+  total_projects: number;
 }
 
 function App() {
   const [config, setConfig] = useState<AppConfig>({ mode: null });
-  const [tunnelActive, setTunnelActive] = useState(false);
+
   const [showSettings, setShowSettings] = useState(false);
   const [provider, setProvider] = useState("cloudflare");
   const [token, setToken] = useState("");
   const [agentOnline, setAgentOnline] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [systemStats, setSystemStats] = useState<SystemStatsData>({
-    cpu: 0,
-    memory: { used: 0, total: 8 * 1024 * 1024 * 1024 },
-    storage: { used: 0, total: 256 * 1024 * 1024 * 1024 },
+    cpu_usage: 0,
+    memory_used: 0,
+    memory_total: 8 * 1024 * 1024 * 1024,
+    memory_percent: 0,
+    disk_used: 0,
+    disk_total: 256 * 1024 * 1024 * 1024,
+    disk_percent: 0,
+    total_projects: 0,
   });
 
   // Load config from localStorage on mount
@@ -64,9 +67,11 @@ function App() {
     try {
       await invoke("health_check");
       setAgentOnline(true);
+      setErrorMsg(null);
     } catch (error) {
       console.error("Agent not running:", error);
       setAgentOnline(false);
+      setErrorMsg(String(error));
     }
   };
 
@@ -85,38 +90,13 @@ function App() {
     localStorage.setItem("zexio-config", JSON.stringify(fullConfig));
   };
 
-  const handleToggle = async () => {
-    if (!tunnelActive) {
-      if (!token.trim()) {
-        setShowSettings(true);
-        return;
-      }
 
-      // Start tunnel
-      try {
-        await invoke("start_tunnel", { provider, token });
-        setTunnelActive(true);
-      } catch (error) {
-        console.error("Failed to start tunnel:", error);
-        alert(`Failed to start tunnel: ${error}`);
-      }
-    } else {
-      // Stop tunnel
-      try {
-        await invoke("stop_tunnel");
-        setTunnelActive(false);
-      } catch (error) {
-        console.error("Failed to stop tunnel:", error);
-        alert(`Failed to stop tunnel: ${error}`);
-      }
-    }
-  };
 
   const handleSaveSettings = () => {
     setShowSettings(false);
   };
 
-  const publicUrl = `https://example-${provider}.zexio.dev`;
+
 
   // Show onboarding if not configured
   if (!config.mode) {
@@ -126,7 +106,10 @@ function App() {
   // Show main app
   return (
     <div className="h-screen bg-background text-foreground flex flex-col">
-      <Header onSettingsClick={() => setShowSettings(!showSettings)} />
+      <Header
+        onSettingsClick={() => setShowSettings(!showSettings)}
+        mode={config.mode}
+      />
 
       <div className="flex-1 overflow-y-auto">
         <div className="p-4 space-y-4 max-w-4xl mx-auto">
@@ -135,46 +118,33 @@ function App() {
               {/* Agent Status Banner */}
               {!agentOnline && (
                 <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-center">
-                  <p className="text-sm text-destructive">
-                    ⚠️ Agent not running. Please start the agent with <code className="bg-muted px-1 rounded">cargo run</code>
+                  <p className="text-sm text-destructive font-bold">
+                    ⚠️ Agent not running
+                  </p>
+                  {errorMsg && (
+                    <p className="text-xs text-destructive/80 mt-1 font-mono">
+                      Error: {errorMsg}
+                    </p>
+                  )}
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Please start the agent with <code className="bg-muted px-1 rounded">cargo run</code>
                   </p>
                 </div>
               )}
 
               {/* System Stats */}
               {agentOnline && (
-                <SystemStats
-                  cpu={systemStats.cpu}
-                  memory={systemStats.memory}
-                  storage={systemStats.storage}
-                />
+                <SystemStats stats={systemStats} />
               )}
 
-              {/* Logo & Tunnel */}
-              <div className="flex flex-col items-center py-8">
-                <LogoBrand size="md" />
+              {/* Logo (Centered, larger version removed or kept? User said "[Zexio Logo] [Mode]" in toolbar) */}
+              {/* If we moved logo to header, maybe we don't need it big in center anymore. 
+                  But user only said "standalone mode pindah ke toolbar", 
+                  implies removing the badge from body. 
+                  Usually dashboard has a hero section or just stats.
+                  I will remove the Big Logo + Badge section entirely as it duplicates header somewhat and user wants removal of badge from there. 
+              */}
 
-                <div className="mt-8 mb-4" />
-
-                <TunnelToggle
-                  isActive={tunnelActive}
-                  onToggle={handleToggle}
-                />
-
-                {tunnelActive && (
-                  <TunnelStats
-                    provider={provider}
-                    publicUrl={publicUrl}
-                  />
-                )}
-
-                {/* Deployment mode badge */}
-                <div className="mt-8">
-                  <div className="px-3 py-1 text-xs font-medium bg-muted text-muted-foreground rounded-full">
-                    {config.mode === "cloud" ? "☁️ Cloud Mode" : "🏠 Standalone Mode"}
-                  </div>
-                </div>
-              </div>
             </>
           ) : (
             <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
@@ -190,8 +160,8 @@ function App() {
         </div>
       </div>
 
-      <Footer isOnline={agentOnline && tunnelActive} />
-    </div>
+      <Footer isOnline={agentOnline} />
+    </div >
   );
 }
 
