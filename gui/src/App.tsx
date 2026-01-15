@@ -174,7 +174,7 @@ function App() {
 
             </>
           ) : (
-            <div className="flex justify-center pt-10">
+            <div className="flex">
               <SettingsPanel
                 token={token}
                 nodeId={config.nodeId || ""}

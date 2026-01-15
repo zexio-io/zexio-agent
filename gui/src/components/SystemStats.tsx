@@ -8,9 +8,6 @@ interface SystemStatsData {
     disk_used: number;
     disk_total: number;
     disk_percent: number;
-    total_projects: number;
-    active_services: number;
-    active_addons: number;
 }
 
 interface CloudStatsData {
@@ -35,6 +32,79 @@ interface SystemStatsProps {
     cloudStats: CloudStatsData;
 }
 
+const statsFontSizes = {
+    title: "text-[10px]",
+    value: "text-[9px]",
+    subValue: "text-[8px]"
+}
+
+
+const ResourceCard = ({ title, icon: Icon, percent, value }: { title: string, icon: any, percent: number, value?: string }) => {
+    const getStatusColor = (p: number) => {
+        if (p < 60) return 'text-primary';
+        if (p < 80) return 'text-yellow-500';
+        return 'text-red-500';
+    };
+
+    return (
+        <div className="bg-card border border-border rounded-md p-2.5 flex flex-col gap-1">
+            <div className="flex items-center justify-between mb-1">
+                <span className={`${statsFontSizes.title} text-muted-foreground uppercase`}>{title}</span>
+                <Icon className={`w-3 h-3 ${getStatusColor(percent)}`} />
+            </div>
+            <p className={`text-lg font-bold leading-none ${getStatusColor(percent)}`}>
+                {percent.toFixed(1)}%
+            </p>
+            {value && (
+                <p className="text-[8px] text-muted-foreground mt-0.5 truncate">
+                    {value}
+                </p>
+            )}
+            <div className="mt-1.5 h-1 bg-muted rounded-full overflow-hidden mt-auto">
+                <div
+                    className={`h-full ${getStatusColor(percent)} bg-current transition-all duration-300`}
+                    style={{ width: `${percent}%` }}
+                />
+            </div>
+        </div>
+    );
+};
+
+const ManagementCard = ({
+    title,
+    badge,
+    badgeColor,
+    mainValue,
+    subValue,
+    children
+}: {
+    title: string;
+    badge: string;
+    badgeColor: string;
+    mainValue: React.ReactNode;
+    subValue: string;
+    children?: React.ReactNode;
+}) => {
+    return (
+        <div className="bg-card border border-border rounded-md p-2.5 cursor-pointer hover:bg-muted/10 transition-colors group">
+            <div className="flex items-center justify-between mb-1">
+                <span className={`${statsFontSizes.title} text-muted-foreground group-hover:text-foreground uppercase`}>{title}</span>
+                <div className={`w-3 h-3 rounded-full flex items-center justify-center text-[8px] font-bold ${badgeColor}`}>
+                    {badge}
+                </div>
+            </div>
+            <div className="flex flex-col">
+                <div className="flex items-baseline gap-1">
+                    <span className="text-lg font-bold text-foreground leading-none">{mainValue}</span>
+                </div>
+                <span className="text-[9px] text-muted-foreground group-hover:text-primary transition-colors truncate">{subValue}</span>
+            </div>
+            <div className="mt-1.5">
+                {children}
+            </div>
+        </div>
+    );
+};
 
 export function SystemStats({ stats, cloudStats }: SystemStatsProps) {
     const formatBytes = (bytes: number) => {
@@ -45,165 +115,83 @@ export function SystemStats({ stats, cloudStats }: SystemStatsProps) {
         return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
     };
 
-    const getStatusColor = (percent: number) => {
-        if (percent < 60) return 'text-primary';
-        if (percent < 80) return 'text-yellow-500';
-        return 'text-red-500';
-    };
-
     return (
-        <div className="space-y-6">
-            {/* Section 1: System Resources (3 cards) */}
+        <div className="space-y-4">
+            {/* Section 1: System Resources */}
             <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">System Resources</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* CPU */}
-                    <div className="bg-card border border-border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-muted-foreground">CPU</span>
-                            <Cpu className={`w-4 h-4 ${getStatusColor(stats.cpu_usage)}`} />
-                        </div>
-                        <p className={`text-2xl font-bold ${getStatusColor(stats.cpu_usage)}`}>
-                            {stats.cpu_usage.toFixed(1)}%
-                        </p>
-                        <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
-                            <div
-                                className={`h-full ${getStatusColor(stats.cpu_usage)} bg-current transition-all duration-300`}
-                                style={{ width: `${stats.cpu_usage}%` }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Memory */}
-                    <div className="bg-card border border-border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-muted-foreground">Memory</span>
-                            <HardDrive className={`w-4 h-4 ${getStatusColor(stats.memory_percent)}`} />
-                        </div>
-                        <p className={`text-2xl font-bold ${getStatusColor(stats.memory_percent)}`}>
-                            {stats.memory_percent.toFixed(1)}%
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {formatBytes(stats.memory_used)} / {formatBytes(stats.memory_total)}
-                        </p>
-                        <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
-                            <div
-                                className={`h-full ${getStatusColor(stats.memory_percent)} bg-current transition-all duration-300`}
-                                style={{ width: `${stats.memory_percent}%` }}
-                            />
-                        </div>
-                    </div>
-
-                    {/* Storage */}
-                    <div className="bg-card border border-border rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-muted-foreground">Storage</span>
-                            <Database className={`w-4 h-4 ${getStatusColor(stats.disk_percent)}`} />
-                        </div>
-                        <p className={`text-2xl font-bold ${getStatusColor(stats.disk_percent)}`}>
-                            {stats.disk_percent.toFixed(1)}%
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                            {formatBytes(stats.disk_used)} / {formatBytes(stats.disk_total)}
-                        </p>
-                        <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden">
-                            <div
-                                className={`h-full ${getStatusColor(stats.disk_percent)} bg-current transition-all duration-300`}
-                                style={{ width: `${stats.disk_percent}%` }}
-                            />
-                        </div>
-                    </div>
+                <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">System Resources</h3>
+                <div className="grid grid-cols-3 gap-2">
+                    <ResourceCard
+                        title="CPU"
+                        icon={Cpu}
+                        percent={stats.cpu_usage}
+                    />
+                    <ResourceCard
+                        title="Memory"
+                        icon={HardDrive}
+                        percent={stats.memory_percent}
+                        value={`${formatBytes(stats.memory_used)} / ${formatBytes(stats.memory_total)}`}
+                    />
+                    <ResourceCard
+                        title="Storage"
+                        icon={Database}
+                        percent={stats.disk_percent}
+                        value={`${formatBytes(stats.disk_used)} / ${formatBytes(stats.disk_total)}`}
+                    />
                 </div>
             </div>
 
-            {/* Section 2: Management (3 cards) */}
+            {/* Section 2: Management */}
             <div>
-                <h3 className="text-sm font-medium text-muted-foreground mb-3">Management</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    {/* Apps Card */}
-                    <div className="bg-card border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/10 transition-colors group">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-muted-foreground group-hover:text-foreground">Apps</span>
-                            <div className="w-4 h-4 rounded-full bg-emerald-500/20 text-emerald-500 flex items-center justify-center text-[10px] font-bold">
-                                A
-                            </div>
-                        </div>
-                        <div className="flex items-baseline gap-1 mt-1">
-                            <span className="text-2xl font-bold text-foreground">{cloudStats.apps.active + cloudStats.apps.stopped + cloudStats.apps.crashed}</span>
-                            <span className="text-xs text-muted-foreground">Total</span>
-                        </div>
-                        <div className="flex gap-2 mt-3 text-[10px]">
-                            <div className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                <span className="text-muted-foreground">Active: {cloudStats.apps.active}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                                <span className="text-muted-foreground">Stop: {cloudStats.apps.stopped}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                <span className="text-red-500 font-medium">Crash: {cloudStats.apps.crashed}</span>
-                            </div>
-                        </div>
-                    </div>
+                <h3 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Management</h3>
+                <div className="grid grid-cols-3 gap-2">
+                    <ManagementCard
+                        title="Apps"
+                        badge="A"
+                        badgeColor="bg-emerald-500/20 text-emerald-500"
+                        mainValue={
+                            <>
+                                <span className="text-emerald-500 cursor-help" title="Active">{cloudStats.apps.active}</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span className="text-muted-foreground cursor-help" title="Stopped">{cloudStats.apps.stopped}</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span className="text-red-500 cursor-help" title="Crashed">{cloudStats.apps.crashed}</span>
+                            </>
+                        }
+                        subValue="Applications"
+                    />
 
-                    {/* Services Card */}
-                    <div className="bg-card border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/10 transition-colors group">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-muted-foreground group-hover:text-foreground">Services</span>
-                            <div className="w-4 h-4 rounded-full bg-orange-500/20 text-orange-500 flex items-center justify-center text-[10px] font-bold">
-                                S
-                            </div>
-                        </div>
-                        <div className="flex items-baseline gap-1 mt-1">
-                            <span className="text-2xl font-bold text-foreground">{cloudStats.services.active + cloudStats.services.stopped + cloudStats.services.crashed}</span>
-                            <span className="text-xs text-muted-foreground group-hover:text-primary transition-colors">Database & Tools</span>
-                        </div>
-                        <div className="flex gap-2 mt-3 text-[10px]">
-                            <div className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                <span className="text-muted-foreground">Active: {cloudStats.services.active}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                                <span className="text-muted-foreground">Stop: {cloudStats.services.stopped}</span>
-                            </div>
-                            <div className="flex items-center gap-1">
-                                <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
-                                <span className="text-red-500 font-medium">Crash: {cloudStats.services.crashed}</span>
-                            </div>
-                        </div>
-                    </div>
+                    <ManagementCard
+                        title="Services"
+                        badge="S"
+                        badgeColor="bg-orange-500/20 text-orange-500"
+                        mainValue={
+                            <>
+                                <span className="text-emerald-500 cursor-help" title="Active">{cloudStats.services.active}</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span className="text-muted-foreground cursor-help" title="Stopped">{cloudStats.services.stopped}</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span className="text-red-500 cursor-help" title="Crashed">{cloudStats.services.crashed}</span>
+                            </>
+                        }
+                        subValue="DB & Tools"
+                    />
 
-                    {/* Addons Card */}
-                    <div className="bg-card border border-border rounded-lg p-4 cursor-pointer hover:bg-muted/10 transition-colors group">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs text-muted-foreground group-hover:text-foreground">Addons</span>
-                            <div className="w-4 h-4 rounded-full bg-purple-500/20 text-purple-500 flex items-center justify-center text-[10px] font-bold">
-                                P
+                    <ManagementCard
+                        title="Addons"
+                        badge="P"
+                        badgeColor="bg-purple-500/20 text-purple-500"
+                        mainValue={
+                            <div className="flex items-baseline gap-1">
+                                <span className="text-emerald-500 cursor-help" title="Active">{cloudStats.addons.enabled}</span>
+                                <span className="text-muted-foreground">/</span>
+                                <span className="text-muted-foreground cursor-help" title="Stopped">{cloudStats.addons.installed}</span>
                             </div>
-                        </div>
-
-                        <div className="flex items-baseline gap-1 mt-1">
-                            <span className="text-2xl font-bold text-foreground">{cloudStats.addons.enabled}</span>
-                            <span className="text-xl text-muted-foreground">/</span>
-                            <span className="text-xl text-muted-foreground">{cloudStats.addons.installed}</span>
-                            <span className="text-xs text-muted-foreground ml-2 group-hover:text-primary transition-colors">Addons Plugins</span>
-                        </div>
-
-                        <div className="mt-2 h-1 bg-muted rounded-full overflow-hidden flex">
-                            <div
-                                className="h-full bg-purple-500 transition-all duration-300"
-                                style={{ width: `${cloudStats.addons.installed > 0 ? (cloudStats.addons.enabled / cloudStats.addons.installed) * 100 : 0}%` }}
-                            />
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-2">
-                            {cloudStats.addons.enabled} Enabled from {cloudStats.addons.installed} Installed
-                        </p>
-                    </div>
+                        }
+                        subValue="Plugins"
+                    />
                 </div>
             </div>
-        </div>
+        </div >
     );
 }

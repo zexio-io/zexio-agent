@@ -1,4 +1,7 @@
 
+import { Button } from "./ui/button";
+import { Input } from "./ui/input";
+import { Label } from "./ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 
 interface SettingsPanelProps {
@@ -21,11 +24,11 @@ export function SettingsPanel({
     onSave
 }: SettingsPanelProps) {
     return (
-        <div className="w-full max-w-md space-y-4">
-            <h2 className="text-2xl font-bold mb-6">Settings</h2>
+        <div className="w-full max-w-md space-y-2">
+            <h2 className="text-lg font-bold mb-2">Settings</h2>
 
             <Tabs defaultValue={mode || "standalone"} onValueChange={(v) => onModeChange(v as "cloud" | "standalone")} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4 bg-muted/50 p-1 rounded-lg">
+                <TabsList className="grid w-full grid-cols-2 mb-2 bg-muted/50 p-1 rounded-lg">
                     <TabsTrigger
                         value="standalone"
                         className="data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm rounded-md py-2 text-sm font-medium transition-all"
@@ -40,8 +43,8 @@ export function SettingsPanel({
                     </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="standalone" className="space-y-4">
-                    <div className="bg-muted/30 border border-border rounded-lg p-4 text-center">
+                <TabsContent value="standalone" className="space-y-2">
+                    <div className="bg-muted/30 border border-border rounded-lg p-2 text-center">
                         <p className="text-sm text-muted-foreground">
                             Agent runs locally without cloud connection.
                             <br />
@@ -51,42 +54,44 @@ export function SettingsPanel({
                 </TabsContent>
 
                 <TabsContent value="cloud" className="space-y-4">
-                    <div>
-                        <label className="block text-sm text-muted-foreground mb-2">
-                            Zexio Token
-                        </label>
-                        <input
-                            type="password"
-                            value={token}
-                            onChange={(e) => onTokenChange(e.target.value)}
-                            placeholder="Enter your Zexio token..."
-                            className="w-full px-4 py-3 bg-card border border-border rounded-lg text-white placeholder-muted-foreground focus:outline-none focus:border-primary"
-                        />
+                    <div className="grid gap-3">
+                        <div className="grid grid-cols-3 items-center gap-4">
+                            <Label className="text-right text-xs text-muted-foreground">
+                                Zexio Token
+                            </Label>
+                            <Input
+                                type="password"
+                                value={token}
+                                onChange={(e) => onTokenChange(e.target.value)}
+                                placeholder="Enter your Zexio token..."
+                                className="col-span-2 h-8 text-xs bg-card border-border"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-3 items-center gap-4">
+                            <Label className="text-right text-xs text-muted-foreground">
+                                Node ID
+                            </Label>
+                            <Input
+                                type="text"
+                                value={nodeId}
+                                onChange={(e) => onNodeIdChange(e.target.value)}
+                                placeholder="Enter Node ID (e.g. node-123)"
+                                className="col-span-2 h-8 text-xs bg-card border-border"
+                            />
+                        </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm text-muted-foreground mb-2">
-                            Node ID
-                        </label>
-                        <input
-                            type="text"
-                            value={nodeId}
-                            onChange={(e) => onNodeIdChange(e.target.value)}
-                            placeholder="Enter Node ID (e.g. node-123)"
-                            className="w-full px-4 py-3 bg-card border border-border rounded-lg text-white placeholder-muted-foreground focus:outline-none focus:border-primary"
-                        />
-                    </div>
+                    <Button
+                        onClick={onSave}
+                        className="w-full h-8 text-xs bg-amber-400 hover:bg-amber-500 text-black font-semibold mt-4 transition-colors"
+                    >
+                        Save Settings
+                    </Button>
 
 
                 </TabsContent>
             </Tabs>
-
-            <button
-                onClick={onSave}
-                className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors mt-6"
-            >
-                Save Settings
-            </button>
         </div>
     );
 }
