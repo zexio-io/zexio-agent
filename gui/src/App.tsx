@@ -1,7 +1,26 @@
 import { useState } from "react";
+import { TunnelControl } from "./components/TunnelControl";
+import { StatusCard } from "./components/StatusCard";
 import "./App.css";
 
 function App() {
+  const [tunnelActive, setTunnelActive] = useState(false);
+  const [tunnelUrl, setTunnelUrl] = useState("");
+
+  const handleStartTunnel = async (provider: string, token: string) => {
+    // TODO: Call Tauri backend API
+    console.log("Starting tunnel:", { provider, token });
+    setTunnelActive(true);
+    setTunnelUrl(`https://example-${provider}.tunnel.dev`);
+  };
+
+  const handleStopTunnel = async () => {
+    // TODO: Call Tauri backend API
+    console.log("Stopping tunnel");
+    setTunnelActive(false);
+    setTunnelUrl("");
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans">
       {/* Header */}
@@ -20,19 +39,50 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content Placeholder */}
-      <main className="p-8 max-w-5xl mx-auto">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Status Card */}
-          <div className="p-6 bg-gray-800 rounded-xl border border-gray-700 hover:border-blue-500/50 transition-colors">
-            <h3 className="text-sm font-medium text-gray-400 mb-2">Tunnel Status</h3>
-            <div className="flex items-center justify-between">
-              <span className="text-2xl font-bold text-white">Inactive</span>
-              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition-colors">
-                Start Tunnel
-              </button>
+      {/* Main Content */}
+      <main className="p-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <StatusCard
+            title="CPU Usage"
+            value="12%"
+            status="success"
+            icon="⚡"
+          />
+          <StatusCard
+            title="Memory"
+            value="2.4 GB"
+            status="neutral"
+            icon="💾"
+          />
+          <StatusCard
+            title="Uptime"
+            value="3h 24m"
+            status="success"
+            icon="⏱️"
+          />
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <TunnelControl
+            isActive={tunnelActive}
+            onStart={handleStartTunnel}
+            onStop={handleStopTunnel}
+          />
+
+          {tunnelActive && tunnelUrl && (
+            <div className="p-6 bg-gray-800 rounded-xl border border-green-500/30">
+              <h3 className="text-sm font-medium text-gray-400 mb-3">Public URL</h3>
+              <div className="flex items-center gap-2 p-3 bg-gray-900 rounded-lg border border-gray-700">
+                <span className="text-sm text-blue-400 font-mono flex-1 truncate">{tunnelUrl}</span>
+                <button
+                  onClick={() => navigator.clipboard.writeText(tunnelUrl)}
+                  className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded transition-colors"
+                >
+                  Copy
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </main>
     </div>
