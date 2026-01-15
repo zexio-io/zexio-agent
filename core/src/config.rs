@@ -139,12 +139,12 @@ impl Settings {
         let port = env::var("SERVER_PORT")
             .ok()
             .and_then(|p| p.parse::<u16>().ok())
-            .unwrap_or(3000);
+            .unwrap_or(8081); // Changed from 3000 to avoid conflict with GUI dev server
 
         let mesh_port = env::var("MESH_PORT")
             .ok()
             .and_then(|p| p.parse::<u16>().ok())
-            .unwrap_or(8080);
+            .unwrap_or(8082); // Changed from 8080 to avoid common conflicts
 
         // Get OS-specific paths
         let config_dir = get_config_dir();
