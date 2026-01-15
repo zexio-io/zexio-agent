@@ -27,14 +27,14 @@ export function TunnelControl({ onStart, onStop, isActive }: TunnelControlProps)
             <CardHeader className="pb-3 pt-4 px-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Activity className={`h-4 w-4 ${isActive ? 'text-primary400' : 'text-muted-foreground'}`} />
+                        <Activity className={`h-4 w-4 ${isActive ? 'text-primary' : 'text-muted-foreground'}`} />
                         <CardTitle className="text-sm">Tunnel</CardTitle>
                     </div>
                     <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${isActive
-                            ? 'bg-primary400/10 text-primary400 border border-green-400/20'
+                            ? 'bg-primary/10 text-primary border border-primary/20'
                             : 'bg-muted text-muted-foreground'
                         }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-primary400' : 'bg-muted-foreground'}`} />
+                        <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-primary' : 'bg-muted-foreground'}`} />
                         {isActive ? "Active" : "Inactive"}
                     </div>
                 </div>
