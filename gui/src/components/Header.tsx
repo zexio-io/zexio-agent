@@ -6,12 +6,12 @@ interface HeaderProps {
 
 export function Header({ onSettingsClick }: HeaderProps) {
     return (
-        <div className="flex items-center justify-end px-6 py-4 border-b border-zinc-800">
+        <div className="flex items-center justify-end px-6 py-4 border-b border-border">
             <button
                 onClick={onSettingsClick}
-                className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
+                className="p-2 hover:bg-border rounded-lg transition-colors"
             >
-                <Settings className="w-5 h-5 text-zinc-400" />
+                <Settings className="w-5 h-5 text-muted-foreground" />
             </button>
         </div>
     );

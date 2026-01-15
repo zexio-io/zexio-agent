@@ -59,7 +59,7 @@ function App() {
 
   // Show main app
   return (
-    <div className="h-screen bg-zinc-950 text-white flex flex-col">
+    <div className="h-screen bg-background text-white flex flex-col">
       <Header onSettingsClick={() => setShowSettings(!showSettings)} />
 
       <div className="flex-1 flex flex-col items-center justify-center px-6">
@@ -83,7 +83,7 @@ function App() {
 
             {/* Show deployment mode badge */}
             <div className="mt-8">
-              <div className="px-3 py-1 text-xs font-medium bg-zinc-800 text-zinc-400 rounded-full">
+              <div className="px-3 py-1 text-xs font-medium bg-muted text-muted-foreground rounded-full">
                 {config.mode === "cloud" ? "☁️ Cloud Mode" : "🏠 Standalone Mode"}
               </div>
             </div>

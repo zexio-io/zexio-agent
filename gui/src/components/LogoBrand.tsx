@@ -16,7 +16,7 @@ export function LogoBrand({ size = "lg" }: LogoBrandProps) {
                 alt="Zexio"
                 className={`${sizes[size]} mb-4`}
             />
-            <p className="text-center text-sm text-zinc-500">Agent</p>
+            <p className="text-center text-sm text-muted-foreground">Agent</p>
         </div>
     );
 }

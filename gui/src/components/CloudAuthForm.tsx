@@ -20,14 +20,14 @@ export function CloudAuthForm({ onSubmit, onBack }: CloudAuthFormProps) {
         <div className="w-full max-w-md space-y-6">
             <div className="text-center mb-8">
                 <h2 className="text-2xl font-bold mb-2">Connect to Zexio Cloud</h2>
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm text-muted-foreground">
                     Enter your credentials to connect this agent to Zexio Cloud
                 </p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
-                    <label className="block text-sm text-zinc-400 mb-2">
+                    <label className="block text-sm text-muted-foreground mb-2">
                         Zexio Token
                     </label>
                     <textarea
@@ -35,16 +35,16 @@ export function CloudAuthForm({ onSubmit, onBack }: CloudAuthFormProps) {
                         onChange={(e) => setToken(e.target.value)}
                         placeholder="Paste your Zexio authentication token here..."
                         rows={4}
-                        className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500 font-mono text-xs resize-none"
+                        className="w-full px-4 py-3 bg-card border border-border rounded-lg text-white placeholder-muted-foreground focus:outline-none focus:border-primary font-mono text-xs resize-none"
                         required
                     />
-                    <p className="text-xs text-zinc-600 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                         Get your token from Zexio Cloud dashboard
                     </p>
                 </div>
 
                 <div>
-                    <label className="block text-sm text-zinc-400 mb-2">
+                    <label className="block text-sm text-muted-foreground mb-2">
                         Node ID
                     </label>
                     <input
@@ -52,10 +52,10 @@ export function CloudAuthForm({ onSubmit, onBack }: CloudAuthFormProps) {
                         value={nodeId}
                         onChange={(e) => setWorkerId(e.target.value)}
                         placeholder="node_xxxxxxxxxxxxx"
-                        className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500"
+                        className="w-full px-4 py-3 bg-card border border-border rounded-lg text-white placeholder-muted-foreground focus:outline-none focus:border-primary"
                         required
                     />
-                    <p className="text-xs text-zinc-600 mt-1">
+                    <p className="text-xs text-muted-foreground mt-1">
                         Unique identifier for this edge or managed node
                     </p>
                 </div>
@@ -64,13 +64,13 @@ export function CloudAuthForm({ onSubmit, onBack }: CloudAuthFormProps) {
                     <button
                         type="button"
                         onClick={onBack}
-                        className="flex-1 py-3 bg-zinc-800 hover:bg-zinc-700 rounded-lg font-medium transition-colors"
+                        className="flex-1 py-3 bg-border hover:bg-muted rounded-lg font-medium transition-colors"
                     >
                         Back
                     </button>
                     <button
                         type="submit"
-                        className="flex-1 py-3 bg-blue-600 hover:bg-blue-500 rounded-lg font-medium transition-colors"
+                        className="flex-1 py-3 bg-primary hover:bg-primary rounded-lg font-medium transition-colors"
                     >
                         Connect
                     </button>

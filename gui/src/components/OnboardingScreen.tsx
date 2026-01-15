@@ -36,7 +36,7 @@ export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     };
 
     return (
-        <div className="h-screen bg-zinc-950 text-white flex flex-col items-center justify-center px-6">
+        <div className="h-screen bg-background text-white flex flex-col items-center justify-center px-6">
             <div className="mb-12">
                 <LogoBrand size="lg" />
             </div>
