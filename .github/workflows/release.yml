@@ -119,6 +119,12 @@ jobs:
           echo "Copying to $DEST"
           cp "$SRC" "$DEST"
           chmod +x "$DEST"
+
+          # Fallback: Copy to src-tauri root as well (fixes Windows/Local path issues)
+          ROOT_DEST="gui/src-tauri/zexio_agent-${{ matrix.target }}${EXT}"
+          echo "Copying to root fallback $ROOT_DEST"
+          cp "$SRC" "$ROOT_DEST"
+          chmod +x "$ROOT_DEST"
           
           echo "Verifying binaries folder content:"
           ls -la gui/src-tauri/binaries/
