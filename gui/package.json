@@ -60,7 +60,6 @@
     "zod": "^4.3.5"
   },
   "devDependencies": {
-    "@tailwindcss/postcss": "^4.1.18",
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
