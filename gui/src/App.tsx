@@ -12,7 +12,7 @@ type DeploymentMode = "cloud" | "standalone" | null;
 interface AppConfig {
   mode: DeploymentMode;
   token?: string;
-  workerId?: string;
+  nodeId?: string;
   apiPort?: number;
   meshPort?: number;
 }
