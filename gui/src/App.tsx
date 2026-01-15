@@ -25,7 +25,23 @@ interface SystemStatsData {
   disk_used: number;
   disk_total: number;
   disk_percent: number;
-  total_projects: number;
+}
+
+interface CloudStatsData {
+  apps: {
+    active: number;
+    stopped: number;
+    crashed: number;
+  };
+  services: {
+    active: number;
+    stopped: number;
+    crashed: number;
+  };
+  addons: {
+    enabled: number;
+    installed: number;
+  };
 }
 
 function App() {
@@ -35,6 +51,8 @@ function App() {
   const [token, setToken] = useState("");
   const [agentOnline, setAgentOnline] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Real-time System Stats (CPU/RAM/Disk)
   const [systemStats, setSystemStats] = useState<SystemStatsData>({
     cpu_usage: 0,
     memory_used: 0,
@@ -43,7 +61,13 @@ function App() {
     disk_used: 0,
     disk_total: 256 * 1024 * 1024 * 1024,
     disk_percent: 0,
-    total_projects: 0,
+  });
+
+  // Cloud Data (Projects, Services, Addons) - To be fetched from Zexio Cloud
+  const [cloudStats, setCloudStats] = useState<CloudStatsData>({
+    apps: { active: 0, stopped: 0, crashed: 0 },
+    services: { active: 0, stopped: 0, crashed: 0 },
+    addons: { enabled: 0, installed: 0 },
   });
 
   // Load config from localStorage on mount
@@ -132,9 +156,12 @@ function App() {
                 </div>
               )}
 
-              {/* System Stats */}
+              {/* System Stats & Cloud Dashboard */}
               {agentOnline && (
-                <SystemStats stats={systemStats} />
+                <SystemStats
+                  stats={systemStats}
+                  cloudStats={cloudStats}
+                />
               )}
 
               {/* Logo (Centered, larger version removed or kept? User said "[Zexio Logo] [Mode]" in toolbar) */}

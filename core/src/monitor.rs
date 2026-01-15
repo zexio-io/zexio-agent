@@ -20,7 +20,6 @@ pub struct SystemStats {
     disk_used: u64,
     disk_total: u64,
     disk_percent: f32,
-    total_projects: u32,
 }
 
 // JSON endpoint (one-time)
@@ -135,7 +134,6 @@ pub async fn global_stats_stream(
                 disk_used,
                 disk_total,
                 disk_percent,
-                total_projects,
             };
 
             if let Ok(json) = serde_json::to_string(&stats) {
@@ -264,7 +262,6 @@ pub async fn sync_handler(
         disk_used,
         disk_total,
         disk_percent,
-        total_projects,
     };
 
     Ok(Json(SyncResponse {
@@ -306,6 +303,7 @@ fn get_dummy_stats() -> SystemStats {
         disk_total: 0,
         disk_percent: 0.0,
         total_projects: 0,
+        active_services: 0,
     }
 }
 
