@@ -9,9 +9,8 @@ type OnboardingStep = "mode-select" | "cloud-auth" | "standalone-config";
 interface OnboardingScreenProps {
     onComplete: (config: {
         mode: "cloud" | "standalone";
-        orgId?: string;
         token?: string;
-        nodeId?: string;
+        workerId?: string;
         apiPort?: number;
         meshPort?: number;
     }) => void;
@@ -20,12 +19,11 @@ interface OnboardingScreenProps {
 export function OnboardingScreen({ onComplete }: OnboardingScreenProps) {
     const [step, setStep] = useState<OnboardingStep>("mode-select");
 
-    const handleCloudSubmit = (orgId: string, token: string, nodeId: string) => {
+    const handleCloudSubmit = (token: string, workerId: string) => {
         onComplete({
             mode: "cloud",
-            orgId,
             token,
-            nodeId,
+            workerId,
         });
     };
 
