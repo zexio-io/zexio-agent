@@ -28,15 +28,15 @@ export function ModeSelector({ onSelectCloud, onSelectStandalone }: ModeSelector
                     </p>
                     <ul className="space-y-2 text-sm text-muted-foreground">
                         <li className="flex items-center gap-2">
-                            <span className="text-green-400">✓</span>
+                            <span className="text-primary">✓</span>
                             Managed infrastructure
                         </li>
                         <li className="flex items-center gap-2">
-                            <span className="text-green-400">✓</span>
+                            <span className="text-primary">✓</span>
                             Automatic updates
                         </li>
                         <li className="flex items-center gap-2">
-                            <span className="text-green-400">✓</span>
+                            <span className="text-primary">✓</span>
                             Cloud monitoring
                         </li>
                     </ul>
@@ -48,7 +48,7 @@ export function ModeSelector({ onSelectCloud, onSelectStandalone }: ModeSelector
                     className="group p-6 bg-card border border-border rounded-xl hover:border-primary transition-all text-left"
                 >
                     <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 rounded-lg bg-emerald-500/10 flex items-center justify-center text-2xl">
+                        <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-2xl">
                             🏠
                         </div>
                         <h3 className="text-xl font-bold">Standalone</h3>
@@ -58,15 +58,15 @@ export function ModeSelector({ onSelectCloud, onSelectStandalone }: ModeSelector
                     </p>
                     <ul className="space-y-2 text-sm text-muted-foreground">
                         <li className="flex items-center gap-2">
-                            <span className="text-green-400">✓</span>
+                            <span className="text-primary">✓</span>
                             Full control
                         </li>
                         <li className="flex items-center gap-2">
-                            <span className="text-green-400">✓</span>
+                            <span className="text-primary">✓</span>
                             No cloud dependency
                         </li>
                         <li className="flex items-center gap-2">
-                            <span className="text-green-400">✓</span>
+                            <span className="text-primary">✓</span>
                             Local deployment
                         </li>
                     </ul>

@@ -10,7 +10,7 @@ interface StatusCardProps {
 
 export function StatusCard({ title, value, status = "neutral", icon: Icon }: StatusCardProps) {
     const statusColors = {
-        success: "text-green-400",
+        success: "text-primary400",
         warning: "text-yellow-400",
         error: "text-red-400",
         neutral: "text-muted-foreground"

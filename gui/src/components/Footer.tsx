@@ -9,12 +9,12 @@ export function Footer({ isOnline }: FooterProps) {
         <div className="px-6 py-3 border-t border-border">
             <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-2">
-                    <Activity className={`w-4 h-4 ${isOnline ? 'text-emerald-500' : 'text-muted-foreground'}`} />
+                    <Activity className={`w-4 h-4 ${isOnline ? 'text-primary' : 'text-muted-foreground'}`} />
                     <span className="text-muted-foreground">Agent Status</span>
                 </div>
                 <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-muted-foreground'}`} />
-                    <span className={isOnline ? 'text-emerald-500' : 'text-muted-foreground'}>
+                    <div className={`w-2 h-2 rounded-full ${isOnline ? 'bg-primary' : 'bg-muted-foreground'}`} />
+                    <span className={isOnline ? 'text-primary' : 'text-muted-foreground'}>
                         {isOnline ? 'Online' : 'Offline'}
                     </span>
                 </div>
