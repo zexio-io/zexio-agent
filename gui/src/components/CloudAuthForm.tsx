@@ -1,18 +1,18 @@
 import { useState } from "react";
 
 interface CloudAuthFormProps {
-    onSubmit: (token: string, workerId: string) => void;
+    onSubmit: (token: string, nodeId: string) => void;
     onBack: () => void;
 }
 
 export function CloudAuthForm({ onSubmit, onBack }: CloudAuthFormProps) {
     const [token, setToken] = useState("");
-    const [workerId, setWorkerId] = useState("");
+    const [nodeId, setWorkerId] = useState("");
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (token.trim() && workerId.trim()) {
-            onSubmit(token, workerId);
+        if (token.trim() && nodeId.trim()) {
+            onSubmit(token, nodeId);
         }
     };
 
@@ -45,18 +45,18 @@ export function CloudAuthForm({ onSubmit, onBack }: CloudAuthFormProps) {
 
                 <div>
                     <label className="block text-sm text-zinc-400 mb-2">
-                        Worker ID
+                        Node ID
                     </label>
                     <input
                         type="text"
-                        value={workerId}
+                        value={nodeId}
                         onChange={(e) => setWorkerId(e.target.value)}
-                        placeholder="worker_xxxxxxxxxxxxx"
+                        placeholder="node_xxxxxxxxxxxxx"
                         className="w-full px-4 py-3 bg-zinc-900 border border-zinc-800 rounded-lg text-white placeholder-zinc-600 focus:outline-none focus:border-blue-500"
                         required
                     />
                     <p className="text-xs text-zinc-600 mt-1">
-                        Unique identifier for this worker node
+                        Unique identifier for this edge or managed node
                     </p>
                 </div>
 
