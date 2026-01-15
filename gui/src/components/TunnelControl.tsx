@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { Button } from "./ui/button";
-import { Activity, Loader2 } from "lucide-react";
+import { Activity } from "lucide-react";
 
 interface TunnelControlProps {
     onStart: (provider: string, token: string) => void;
@@ -27,18 +27,18 @@ export function TunnelControl({ onStart, onStop, isActive }: TunnelControlProps)
             <CardHeader className="pb-3 pt-4 px-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <Activity className={`h-4 w-4 ${isActive ? 'text-green-400' : 'text-gray-400'}`} />
-                        <CardTitle className="text-sm text-white">Tunnel</CardTitle>
+                        <Activity className={`h-4 w-4 ${isActive ? 'text-green-400' : 'text-muted-foreground'}`} />
+                        <CardTitle className="text-sm">Tunnel</CardTitle>
                     </div>
                     <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${isActive
                             ? 'bg-green-400/10 text-green-400 border border-green-400/20'
-                            : 'bg-gray-700 text-gray-400'
+                            : 'bg-muted text-muted-foreground'
                         }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400' : 'bg-gray-500'}`} />
+                        <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400' : 'bg-muted-foreground'}`} />
                         {isActive ? "Active" : "Inactive"}
                     </div>
                 </div>
-                <CardDescription className="text-gray-400 text-xs mt-1">
+                <CardDescription className="text-xs mt-1">
                     {isActive ? "Tunnel is running" : "Start a secure tunnel"}
                 </CardDescription>
             </CardHeader>
@@ -47,13 +47,13 @@ export function TunnelControl({ onStart, onStop, isActive }: TunnelControlProps)
                 {!isActive && (
                     <div className="space-y-2 mb-3">
                         <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                            <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                                 Provider
                             </label>
                             <select
                                 value={provider}
                                 onChange={(e) => setProvider(e.target.value)}
-                                className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded-lg text-white text-xs focus:outline-none focus:border-blue-500"
+                                className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-ring"
                             >
                                 <option value="cloudflare">Cloudflare Tunnel</option>
                                 <option value="pangolin">Pangolin Tunnel</option>
@@ -62,7 +62,7 @@ export function TunnelControl({ onStart, onStop, isActive }: TunnelControlProps)
 
                         {(showTokenInput || token) && (
                             <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-1.5">
+                                <label className="block text-xs font-medium text-muted-foreground mb-1.5">
                                     Auth Token
                                 </label>
                                 <input
@@ -70,7 +70,7 @@ export function TunnelControl({ onStart, onStop, isActive }: TunnelControlProps)
                                     value={token}
                                     onChange={(e) => setToken(e.target.value)}
                                     placeholder="Enter your tunnel token..."
-                                    className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded-lg text-white text-xs placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                                    className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground text-xs placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                                 />
                             </div>
                         )}

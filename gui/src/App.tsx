@@ -12,14 +12,12 @@ function App() {
   const [copied, setCopied] = useState(false);
 
   const handleStartTunnel = async (provider: string, token: string) => {
-    // TODO: Call Tauri backend API
     console.log("Starting tunnel:", { provider, token });
     setTunnelActive(true);
     setTunnelUrl(`https://example-${provider}.zexio.dev`);
   };
 
   const handleStopTunnel = async () => {
-    // TODO: Call Tauri backend API
     console.log("Stopping tunnel");
     setTunnelActive(false);
     setTunnelUrl("");
@@ -32,17 +30,17 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white font-sans">
+    <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
-        <div className="flex items-center gap-2">
+      <header className="flex items-center justify-between px-4 py-3 bg-card border-b border-border">
+        <div className="flex items-center gap-3">
           <img src="/logo.png" alt="Zexio Logo" className="w-8 h-8 object-contain flex-shrink-0" />
           <div>
-            <h1 className="text-base font-bold tracking-tight text-white">Zexio Agent</h1>
-            <p className="text-xs text-gray-400">Local Dashboard</p>
+            <h1 className="text-lg font-bold tracking-tight">Zexio Agent</h1>
+            <p className="text-xs text-muted-foreground">Local Dashboard</p>
           </div>
         </div>
-        <div className="px-2 py-1 text-xs font-medium text-green-400 bg-green-400/10 rounded-full border border-green-400/20 flex-shrink-0">
+        <div className="px-3 py-1 text-xs font-medium text-green-400 bg-green-400/10 rounded-full border border-green-400/20 flex-shrink-0">
           ● Online
         </div>
       </header>
@@ -81,11 +79,11 @@ function App() {
         {tunnelActive && tunnelUrl && (
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm text-white">Public URL</CardTitle>
+              <CardTitle className="text-sm">Public URL</CardTitle>
             </CardHeader>
             <CardContent className="pb-4">
-              <div className="flex items-center gap-2 p-2 bg-gray-900 rounded-lg border border-gray-700">
-                <span className="text-xs text-blue-400 font-mono flex-1 truncate">{tunnelUrl}</span>
+              <div className="flex items-center gap-2 p-2 bg-muted rounded-lg border border-border">
+                <span className="text-xs text-primary font-mono flex-1 truncate">{tunnelUrl}</span>
                 <Button
                   onClick={handleCopy}
                   size="sm"
