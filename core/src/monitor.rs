@@ -75,7 +75,6 @@ pub async fn global_stats_handler(
         disk_used,
         disk_total,
         disk_percent,
-        total_projects,
     }))
 }
 
@@ -302,8 +301,6 @@ fn get_dummy_stats() -> SystemStats {
         disk_used: 0,
         disk_total: 0,
         disk_percent: 0.0,
-        total_projects: 0,
-        active_services: 0,
     }
 }
 
