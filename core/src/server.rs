@@ -33,8 +33,6 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
         .route("/projects/:id/webhook", post(deploy::project_deploy_handler))
         .route("/services/install", post(services::install_service_handler))
         .route("/services/uninstall", post(services::uninstall_service_handler))
-        .route("/tunnel/start", post(crate::tunnel::start_tunnel_handler))
-        .route("/tunnel/stop", post(crate::tunnel::stop_tunnel_handler))
         .route("/firewall/configure", post(monitor::configure_firewall_handler))
         .route("/sync", post(monitor::sync_handler))
         .layer(axum_middleware::from_fn_with_state(
@@ -42,13 +40,15 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
             middleware::worker_auth_middleware
         ));
 
-    // Public routes (no auth required)
+    // Public routes (no auth required - for standalone mode and GUI)
     let public_routes = Router::new()
         .route("/health", get(|| async { "OK" }))
         .route("/stats", get(monitor::global_stats_handler))
         .route("/stats/stream", get(monitor::global_stats_stream))  // SSE!
         .route("/system/logs", get(streams::worker_logs_handler))   // JSON (one-time)
-        .route("/system/logs/stream", get(streams::worker_logs_stream));  // SSE!
+        .route("/system/logs/stream", get(streams::worker_logs_stream))  // SSE!
+        .route("/tunnel/start", post(crate::tunnel::start_tunnel_handler))  // Moved to public
+        .route("/tunnel/stop", post(crate::tunnel::stop_tunnel_handler));   // Moved to public
 
     // Combine routes
     let app = public_routes
