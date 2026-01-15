@@ -35,23 +35,24 @@ jobs:
             use_cross: true
 
           # Windows AMD64
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            artifact_name: zexio-agent-windows-amd64.exe
-            use_cross: false
-            extension: .exe
+          # Windows AMD64 (Disabled)
+          # - os: windows-latest
+          #   target: x86_64-pc-windows-msvc
+          #   artifact_name: zexio-agent-windows-amd64.exe
+          #   use_cross: false
+          #   extension: .exe
 
-          # macOS AMD64 (Intel)
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            artifact_name: zexio-agent-macos-amd64
-            use_cross: false
+          # macOS AMD64 (Intel) (Disabled)
+          # - os: macos-latest
+          #   target: x86_64-apple-darwin
+          #   artifact_name: zexio-agent-macos-amd64
+          #   use_cross: false
 
-          # macOS ARM64 (Apple Silicon)
-          - os: macos-14
-            target: aarch64-apple-darwin
-            artifact_name: zexio-agent-macos-arm64
-            use_cross: false
+          # macOS ARM64 (Apple Silicon) (Disabled)
+          # - os: macos-14
+          #   target: aarch64-apple-darwin
+          #   artifact_name: zexio-agent-macos-arm64
+          #   use_cross: false
 
     steps:
       - uses: actions/checkout@v4
