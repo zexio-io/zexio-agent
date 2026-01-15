@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { OnboardingScreen } from "./components/OnboardingScreen";
 import { Header } from "./components/Header";
 import { Footer } from "./components/Footer";
@@ -18,24 +19,29 @@ interface AppConfig {
   meshPort?: number;
 }
 
+interface SystemStatsData {
+  cpu: number;
+  memory: {
+    used: number;
+    total: number;
+  };
+  storage: {
+    used: number;
+    total: number;
+  };
+}
+
 function App() {
   const [config, setConfig] = useState<AppConfig>({ mode: null });
   const [tunnelActive, setTunnelActive] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [provider, setProvider] = useState("cloudflare");
   const [token, setToken] = useState("");
-
-  // Mock system stats (will be replaced with real data from Tauri)
-  const [systemStats, setSystemStats] = useState({
-    cpu: 12.5,
-    memory: {
-      used: 2.4 * 1024 * 1024 * 1024, // 2.4 GB in bytes
-      total: 8 * 1024 * 1024 * 1024,  // 8 GB in bytes
-    },
-    storage: {
-      used: 45 * 1024 * 1024 * 1024,  // 45 GB in bytes
-      total: 256 * 1024 * 1024 * 1024, // 256 GB in bytes
-    },
+  const [agentOnline, setAgentOnline] = useState(false);
+  const [systemStats, setSystemStats] = useState<SystemStatsData>({
+    cpu: 0,
+    memory: { used: 0, total: 8 * 1024 * 1024 * 1024 },
+    storage: { used: 0, total: 256 * 1024 * 1024 * 1024 },
   });
 
   // Load config from localStorage on mount
@@ -45,17 +51,33 @@ function App() {
       setConfig(JSON.parse(savedConfig));
     }
 
-    // Simulate real-time stats updates (will be replaced with actual API calls)
-    const interval = setInterval(() => {
-      setSystemStats(prev => ({
-        cpu: Math.max(5, Math.min(95, prev.cpu + (Math.random() - 0.5) * 10)),
-        memory: prev.memory,
-        storage: prev.storage,
-      }));
-    }, 2000);
+    // Check agent health
+    checkAgentHealth();
 
-    return () => clearInterval(interval);
+    // Poll system stats every 2 seconds
+    const statsInterval = setInterval(fetchSystemStats, 2000);
+
+    return () => clearInterval(statsInterval);
   }, []);
+
+  const checkAgentHealth = async () => {
+    try {
+      await invoke("health_check");
+      setAgentOnline(true);
+    } catch (error) {
+      console.error("Agent not running:", error);
+      setAgentOnline(false);
+    }
+  };
+
+  const fetchSystemStats = async () => {
+    try {
+      const stats = await invoke<SystemStatsData>("get_system_stats");
+      setSystemStats(stats);
+    } catch (error) {
+      console.error("Failed to fetch stats:", error);
+    }
+  };
 
   const handleOnboardingComplete = (newConfig: Omit<AppConfig, "mode"> & { mode: "cloud" | "standalone" }) => {
     const fullConfig = { ...newConfig };
@@ -63,12 +85,31 @@ function App() {
     localStorage.setItem("zexio-config", JSON.stringify(fullConfig));
   };
 
-  const handleToggle = () => {
-    if (!tunnelActive && !token.trim()) {
-      setShowSettings(true);
-      return;
+  const handleToggle = async () => {
+    if (!tunnelActive) {
+      if (!token.trim()) {
+        setShowSettings(true);
+        return;
+      }
+
+      // Start tunnel
+      try {
+        await invoke("start_tunnel", { provider, token });
+        setTunnelActive(true);
+      } catch (error) {
+        console.error("Failed to start tunnel:", error);
+        alert(`Failed to start tunnel: ${error}`);
+      }
+    } else {
+      // Stop tunnel
+      try {
+        await invoke("stop_tunnel");
+        setTunnelActive(false);
+      } catch (error) {
+        console.error("Failed to stop tunnel:", error);
+        alert(`Failed to stop tunnel: ${error}`);
+      }
     }
-    setTunnelActive(!tunnelActive);
   };
 
   const handleSaveSettings = () => {
@@ -91,12 +132,23 @@ function App() {
         <div className="p-4 space-y-4 max-w-4xl mx-auto">
           {!showSettings ? (
             <>
+              {/* Agent Status Banner */}
+              {!agentOnline && (
+                <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-3 text-center">
+                  <p className="text-sm text-destructive">
+                    ⚠️ Agent not running. Please start the agent with <code className="bg-muted px-1 rounded">cargo run</code>
+                  </p>
+                </div>
+              )}
+
               {/* System Stats */}
-              <SystemStats
-                cpu={systemStats.cpu}
-                memory={systemStats.memory}
-                storage={systemStats.storage}
-              />
+              {agentOnline && (
+                <SystemStats
+                  cpu={systemStats.cpu}
+                  memory={systemStats.memory}
+                  storage={systemStats.storage}
+                />
+              )}
 
               {/* Logo & Tunnel */}
               <div className="flex flex-col items-center py-8">
@@ -138,7 +190,7 @@ function App() {
         </div>
       </div>
 
-      <Footer isOnline={tunnelActive} />
+      <Footer isOnline={agentOnline && tunnelActive} />
     </div>
   );
 }
