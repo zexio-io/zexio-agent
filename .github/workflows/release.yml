@@ -26,7 +26,7 @@ jobs:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
             artifact_name: zexio-agent-linux-amd64
-            use_cross: true
+            use_cross: false
 
           # Linux ARM64 (Raspberry Pi / AWS Graviton)
           - os: ubuntu-latest
