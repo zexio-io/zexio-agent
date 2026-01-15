@@ -1,6 +1,7 @@
 use config::{Config, ConfigError};
 use serde::Deserialize;
 use std::env;
+use std::path::PathBuf;
 
 #[derive(Debug, Deserialize, Clone)]
 pub struct Settings {
@@ -44,6 +45,36 @@ pub struct CloudSettings {
     pub worker_id: Option<String>,
 }
 
+/// Get OS-specific config directory
+fn get_config_dir() -> PathBuf {
+    if cfg!(target_os = "windows") {
+        // Windows: C:\ProgramData\Zexio
+        PathBuf::from(env::var("PROGRAMDATA").unwrap_or_else(|_| "C:\\ProgramData".to_string()))
+            .join("Zexio")
+    } else if cfg!(target_os = "macos") {
+        // macOS: /Library/Application Support/Zexio
+        PathBuf::from("/Library/Application Support/Zexio")
+    } else {
+        // Linux: /etc/zexio
+        PathBuf::from("/etc/zexio")
+    }
+}
+
+/// Get OS-specific data directory
+fn get_data_dir() -> PathBuf {
+    if cfg!(target_os = "windows") {
+        // Windows: C:\ProgramData\Zexio\data
+        PathBuf::from(env::var("PROGRAMDATA").unwrap_or_else(|_| "C:\\ProgramData".to_string()))
+            .join("Zexio")
+            .join("data")
+    } else if cfg!(target_os = "macos") {
+        // macOS: /Library/Application Support/Zexio/data
+        PathBuf::from("/Library/Application Support/Zexio/data")
+    } else {
+        // Linux: /var/lib/zexio
+        PathBuf::from("/var/lib/zexio")
+    }
+}
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
@@ -60,6 +91,10 @@ impl Settings {
             .and_then(|p| p.parse::<u16>().ok())
             .unwrap_or(8080);
 
+        // Get OS-specific paths
+        let config_dir = get_config_dir();
+        let data_dir = get_data_dir();
+
         let s = Config::builder()
             // Start with default values
             .set_default("server.port", port as i64)?
@@ -68,16 +103,14 @@ impl Settings {
             .set_default("server.public_hostname", None::<String>)?
             .set_default("server.public_ip", None::<String>)?
             
-            // Default Storage Paths (Production)
-            .set_default("storage.projects_dir", "/zexio/apps")?
-
-            .set_default("storage.config_dir", "/etc/zexio")?
+            // Default Storage Paths (OS-specific)
+            .set_default("storage.projects_dir", data_dir.join("apps").to_string_lossy().to_string())?
             
-            // Default Secrets Paths
-            .set_default("secrets.worker_secret_path", "/etc/zexio/worker.secret")?
-            .set_default("secrets.master_key_path", "/etc/zexio/master.key")?
-            .set_default("secrets.identity_path", "/etc/zexio/identity.json")?
-            .set_default("secrets.provisioning_token_path", "/etc/zexio/provisioning_token")?
+            // Default Secrets Paths (OS-specific)
+            .set_default("secrets.worker_secret_path", config_dir.join("worker.secret").to_string_lossy().to_string())?
+            .set_default("secrets.master_key_path", config_dir.join("master.key").to_string_lossy().to_string())?
+            .set_default("secrets.identity_path", config_dir.join("identity.json").to_string_lossy().to_string())?
+            .set_default("secrets.provisioning_token_path", config_dir.join("provisioning_token").to_string_lossy().to_string())?
 
             // Default Cloud Settings
             .set_default("cloud.api_url", "https://api.zexio.io")?
