@@ -28,31 +28,12 @@ jobs:
             artifact_name: zexio-agent-linux-amd64
             use_cross: false
 
+
           # Linux ARM64 (Raspberry Pi / AWS Graviton)
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
             artifact_name: zexio-agent-linux-arm64
             use_cross: true
-
-          # Windows AMD64
-          # Windows AMD64 (Disabled)
-          # - os: windows-latest
-          #   target: x86_64-pc-windows-msvc
-          #   artifact_name: zexio-agent-windows-amd64.exe
-          #   use_cross: false
-          #   extension: .exe
-
-          # macOS AMD64 (Intel) (Disabled)
-          # - os: macos-latest
-          #   target: x86_64-apple-darwin
-          #   artifact_name: zexio-agent-macos-amd64
-          #   use_cross: false
-
-          # macOS ARM64 (Apple Silicon) (Disabled)
-          # - os: macos-14
-          #   target: aarch64-apple-darwin
-          #   artifact_name: zexio-agent-macos-arm64
-          #   use_cross: false
 
     steps:
       - uses: actions/checkout@v4
@@ -66,7 +47,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev
+          sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev cmake clang
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
