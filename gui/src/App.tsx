@@ -1,50 +1,41 @@
 import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
 import "./App.css";
 
 function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
-
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
-
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
+    <div className="min-h-screen bg-gray-900 text-white font-sans">
+      {/* Header */}
+      <header className="flex items-center justify-between px-6 py-4 bg-gray-800 border-b border-gray-700 shadow-md">
+        <div className="flex items-center gap-3">
+          <img src="/logo.png" alt="Zexio Logo" className="w-10 h-10 object-contain" />
+          <div>
+            <h1 className="text-xl font-bold tracking-tight text-white">Zexio Agent</h1>
+            <p className="text-xs text-gray-400">Local Dashboard</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="px-3 py-1 text-xs font-medium text-green-400 bg-green-400/10 rounded-full border border-green-400/20">
+            ● Online
+          </div>
+        </div>
+      </header>
 
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
-
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+      {/* Main Content Placeholder */}
+      <main className="p-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Status Card */}
+          <div className="p-6 bg-gray-800 rounded-xl border border-gray-700 hover:border-blue-500/50 transition-colors">
+            <h3 className="text-sm font-medium text-gray-400 mb-2">Tunnel Status</h3>
+            <div className="flex items-center justify-between">
+              <span className="text-2xl font-bold text-white">Inactive</span>
+              <button className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition-colors">
+                Start Tunnel
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
   );
 }
 
