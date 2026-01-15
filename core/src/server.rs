@@ -11,7 +11,9 @@ use axum::middleware as axum_middleware;
 
 pub async fn start(settings: Settings) -> anyhow::Result<()> {
     // Application state
+    info!("📦 Initializing application state...");
     let state = AppState::new(settings.clone())?;
+    info!("✅ Application state ready");
 
     // Protected routes (require worker authentication)
     let protected_routes = Router::new()
@@ -55,8 +57,17 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
 
     let mgmt_addr: SocketAddr = format!("{}:{}", settings.server.host, settings.server.port).parse()?;
     
-    info!("Management API listening on {}", mgmt_addr);
-    info!("Service Mesh Proxy (Pingora) listening on port {}", settings.server.mesh_port);
+    info!("🌐 Management API listening on http://{}", mgmt_addr);
+    info!("🔀 Service Mesh Proxy (Pingora) on port {}", settings.server.mesh_port);
+    info!("");
+    info!("📡 Available endpoints:");
+    info!("   GET  /health              - Health check");
+    info!("   GET  /stats               - System statistics");
+    info!("   GET  /stats/stream        - Real-time stats (SSE)");
+    info!("   POST /tunnel/start        - Start tunnel");
+    info!("   POST /tunnel/stop         - Stop tunnel");
+    info!("");
+    info!("✨ Zexio Agent is ready!");
 
     let mgmt_listener = TcpListener::bind(mgmt_addr).await?;
     let mgmt_server = axum::serve(mgmt_listener, app);
@@ -95,5 +106,4 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
 
     Ok(())
 }
-
 

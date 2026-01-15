@@ -19,8 +19,15 @@ use tracing::{info, error};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Initialize logging
-    tracing_subscriber::fmt::init();
+    // Initialize logging with better formatting
+    tracing_subscriber::fmt()
+        .with_target(false)
+        .with_thread_ids(false)
+        .with_level(true)
+        .init();
+
+    // Print startup banner
+    print_banner();
 
     // Check for CLI arguments
     let args: Vec<String> = std::env::args().collect();
@@ -28,23 +35,38 @@ async fn main() -> anyhow::Result<()> {
     // Load configuration
     let settings = config::Settings::new()?;
 
+    info!("🔧 Configuration loaded");
+    info!("   Management API: http://{}:{}", settings.server.host, settings.server.port);
+    info!("   Mesh Proxy: port {}", settings.server.mesh_port);
+
     // Handle Commands
     if args.len() > 1 && args[1] == "unregister" {
+        info!("🔓 Unregistering from Zexio Cloud...");
         registration::unregister(&settings).await?;
         return Ok(());
     }
 
-    info!("Starting Zexio Agent on port {}", settings.server.port);
-
     // Auto-Registration Handshake
     if let Err(e) = registration::handshake(&settings).await {
-        error!("Handshake failed: {}", e);
-        // We continue effectively, maybe manual provision is possible? 
-        // Or we should exit? For now log and continue.
+        error!("⚠️  Handshake failed: {}", e);
+        info!("   Continuing in standalone mode...");
     }
+
+    info!("🚀 Starting Zexio Agent...");
 
     // Start server
     server::start(settings).await?;
 
     Ok(())
+}
+
+fn print_banner() {
+    println!("\n{}", "=".repeat(60));
+    println!("  ____           _         ");
+    println!(" |_  / ___ __ _(_) ___    ");
+    println!("  / / / -_) \ / / / _ \\   ");
+    println!(" /___\\___/_\\_\\_|_\\___/   Agent v0.2.0");
+    println!("{}", "=".repeat(60));
+    println!("  Deploy Anything. Anywhere. Securely.");
+    println!("{}\n", "=".repeat(60));
 }
