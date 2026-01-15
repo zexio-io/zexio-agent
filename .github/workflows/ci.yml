@@ -90,15 +90,28 @@ jobs:
             EXT=".exe"
           fi
           
-          # Source is the cargo build output
-          SRC="target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}${EXT}"
+          echo "Looking for binary: ${{ env.BINARY_NAME }}${EXT}"
           
-          # Destination is usage of sidecar pattern: name-target-triple
-          # Note: Tauri expects the target triple to be part of the filename
+          # More robust find strategy
+          SRC=$(find target -name "${{ env.BINARY_NAME }}${EXT}" -type f | grep "release" | head -n 1)
+          
+          if [ -z "$SRC" ]; then
+            echo "Error: Binary not found!"
+            find target -maxdepth 4
+            exit 1
+          fi
+          
+          echo "Found binary at: $SRC"
+          
+          # Destination: name-target-triple
           DEST="gui/src-tauri/binaries/zexio_agent-${{ matrix.target }}${EXT}"
           
-          echo "Copying $SRC to $DEST"
+          echo "Copying to $DEST"
           cp "$SRC" "$DEST"
+          chmod +x "$DEST"
+          
+          echo "Verifying binaries folder content:"
+          ls -la gui/src-tauri/binaries/
 
       - name: Build GUI (Tauri)
         # Skip GUI build for Linux ARM64 (cross-compilation issues, excluded from matrix here anyway)
