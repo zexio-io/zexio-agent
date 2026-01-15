@@ -32,7 +32,6 @@ function App() {
   const [config, setConfig] = useState<AppConfig>({ mode: null });
 
   const [showSettings, setShowSettings] = useState(false);
-  const [provider, setProvider] = useState("cloudflare");
   const [token, setToken] = useState("");
   const [agentOnline, setAgentOnline] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -108,6 +107,7 @@ function App() {
     <div className="h-screen bg-background text-foreground flex flex-col">
       <Header
         onSettingsClick={() => setShowSettings(!showSettings)}
+        onLogoClick={() => setShowSettings(false)}
         mode={config.mode}
       />
 
@@ -147,12 +147,22 @@ function App() {
 
             </>
           ) : (
-            <div className="flex items-center justify-center min-h-[calc(100vh-8rem)]">
+            <div className="flex justify-center pt-10">
               <SettingsPanel
-                provider={provider}
                 token={token}
-                onProviderChange={setProvider}
+                nodeId={config.nodeId || ""}
                 onTokenChange={setToken}
+                onNodeIdChange={(nodeId) => {
+                  const newConfig = { ...config, nodeId };
+                  setConfig(newConfig);
+                  localStorage.setItem("zexio-config", JSON.stringify(newConfig));
+                }}
+                mode={config.mode}
+                onModeChange={(mode) => {
+                  const newConfig = { ...config, mode };
+                  setConfig(newConfig);
+                  localStorage.setItem("zexio-config", JSON.stringify(newConfig));
+                }}
                 onSave={handleSaveSettings}
               />
             </div>
@@ -160,7 +170,12 @@ function App() {
         </div>
       </div>
 
-      <Footer isOnline={agentOnline} />
+      <Footer
+        isOnline={agentOnline}
+        mode={config.mode}
+        cloudStatus="connected" // TODO: Real status from backend
+        lastSync="just now"     // TODO: Real timestamp
+      />
     </div >
   );
 }
