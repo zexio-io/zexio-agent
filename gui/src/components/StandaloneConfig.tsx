@@ -46,7 +46,7 @@ export function StandaloneConfig({ onSubmit, onBack }: StandaloneConfigProps) {
                     </button>
                     <button
                         type="submit"
-                        className="flex-1 py-3 bg-primary hover:bg-primary rounded-lg font-medium transition-colors"
+                        className="flex-1 py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
                     >
                         Continue
                     </button>

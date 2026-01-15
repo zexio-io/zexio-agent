@@ -59,7 +59,7 @@ export function SettingsPanel({
 
             <button
                 onClick={onSave}
-                className="w-full py-3 bg-primary hover:bg-primary rounded-lg font-medium transition-colors"
+                className="w-full py-3 bg-primary hover:bg-primary/90 text-primary-foreground rounded-lg font-medium transition-colors"
             >
                 Save Settings
             </button>
