@@ -15,7 +15,7 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
     let state = AppState::new(settings.clone())?;
     info!("✅ Application state ready");
 
-    // Protected routes (require worker authentication)
+    // Protected routes (require authentication in cloud mode, open in standalone)
     let protected_routes = Router::new()
         .route("/projects", 
             post(project::create_project)
@@ -37,7 +37,7 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
         .route("/sync", post(monitor::sync_handler))
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
-            middleware::worker_auth_middleware
+            middleware::smart_auth_middleware  // Changed from worker_auth_middleware
         ));
 
     // Public routes (no auth required - for standalone mode and GUI)
