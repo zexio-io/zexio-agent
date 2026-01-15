@@ -40,7 +40,7 @@ redis = { version = "0.24", features = ["tokio-comp"] }
 jsonwebtoken = "9.2"
 validator = { version = "0.16", features = ["derive"] }
 
-pingora = { version = "0.4", features = ["proxy", "lb"] }
+pingora = { version = "0.6", features = ["proxy", "lb"] }
 async-trait = "0.1"
 [dev-dependencies]
 tempfile = "3.10"
