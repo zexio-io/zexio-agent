@@ -23,14 +23,14 @@ export function TunnelControl({ onStart, onStop, isActive }: TunnelControlProps)
     };
 
     return (
-        <Card variant={isActive ? "success" : "default"}>
-            <CardHeader>
+        <Card>
+            <CardHeader className="pb-3 pt-4 px-4">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                         <Activity className={`h-4 w-4 ${isActive ? 'text-green-400' : 'text-gray-400'}`} />
-                        <CardTitle className="text-white">Tunnel</CardTitle>
+                        <CardTitle className="text-sm text-white">Tunnel</CardTitle>
                     </div>
-                    <div className={`flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium ${isActive
+                    <div className={`flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium ${isActive
                             ? 'bg-green-400/10 text-green-400 border border-green-400/20'
                             : 'bg-gray-700 text-gray-400'
                         }`}>
@@ -38,22 +38,22 @@ export function TunnelControl({ onStart, onStop, isActive }: TunnelControlProps)
                         {isActive ? "Active" : "Inactive"}
                     </div>
                 </div>
-                <CardDescription className="text-gray-400">
-                    {isActive ? "Tunnel is running" : "Start a secure tunnel to expose your services"}
+                <CardDescription className="text-gray-400 text-xs mt-1">
+                    {isActive ? "Tunnel is running" : "Start a secure tunnel"}
                 </CardDescription>
             </CardHeader>
 
-            <CardContent>
+            <CardContent className="px-4 pb-4">
                 {!isActive && (
-                    <div className="space-y-3 mb-4">
+                    <div className="space-y-2 mb-3">
                         <div>
-                            <label className="block text-xs font-medium text-gray-400 mb-2">
+                            <label className="block text-xs font-medium text-gray-400 mb-1.5">
                                 Provider
                             </label>
                             <select
                                 value={provider}
                                 onChange={(e) => setProvider(e.target.value)}
-                                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                                className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded-lg text-white text-xs focus:outline-none focus:border-blue-500"
                             >
                                 <option value="cloudflare">Cloudflare Tunnel</option>
                                 <option value="pangolin">Pangolin Tunnel</option>
@@ -62,7 +62,7 @@ export function TunnelControl({ onStart, onStop, isActive }: TunnelControlProps)
 
                         {(showTokenInput || token) && (
                             <div>
-                                <label className="block text-xs font-medium text-gray-400 mb-2">
+                                <label className="block text-xs font-medium text-gray-400 mb-1.5">
                                     Auth Token
                                 </label>
                                 <input
@@ -70,7 +70,7 @@ export function TunnelControl({ onStart, onStop, isActive }: TunnelControlProps)
                                     value={token}
                                     onChange={(e) => setToken(e.target.value)}
                                     placeholder="Enter your tunnel token..."
-                                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                                    className="w-full px-2 py-1.5 bg-gray-900 border border-gray-700 rounded-lg text-white text-xs placeholder-gray-500 focus:outline-none focus:border-blue-500"
                                 />
                             </div>
                         )}
@@ -78,11 +78,11 @@ export function TunnelControl({ onStart, onStop, isActive }: TunnelControlProps)
                 )}
 
                 {isActive ? (
-                    <Button onClick={onStop} variant="destructive" className="w-full">
+                    <Button onClick={onStop} variant="destructive" className="w-full h-8 text-xs">
                         Stop Tunnel
                     </Button>
                 ) : (
-                    <Button onClick={handleStart} className="w-full">
+                    <Button onClick={handleStart} className="w-full h-8 text-xs">
                         Start Tunnel
                     </Button>
                 )}

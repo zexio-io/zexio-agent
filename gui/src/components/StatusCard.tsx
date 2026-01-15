@@ -20,14 +20,14 @@ export function StatusCard({ title, value, status = "neutral", icon: Icon }: Sta
 
     return (
         <Card variant={cardVariant as any}>
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2 pt-4 px-4">
                 <div className="flex items-center justify-between">
-                    <CardTitle className="text-sm font-medium text-gray-400">{title}</CardTitle>
-                    {Icon && <Icon className={`h-5 w-5 ${statusColors[status]}`} />}
+                    <CardTitle className="text-xs font-medium text-gray-400">{title}</CardTitle>
+                    {Icon && <Icon className={`h-4 w-4 ${statusColors[status]}`} />}
                 </div>
             </CardHeader>
-            <CardContent>
-                <p className={`text-2xl font-bold ${statusColors[status]}`}>{value}</p>
+            <CardContent className="px-4 pb-4">
+                <p className={`text-xl font-bold ${statusColors[status]}`}>{value}</p>
             </CardContent>
         </Card>
     );

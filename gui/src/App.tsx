@@ -34,25 +34,25 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 bg-gray-800 border-b border-gray-700">
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Zexio Logo" className="w-7 h-7 object-contain flex-shrink-0" />
+      <header className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
+        <div className="flex items-center gap-2">
+          <img src="/logo.png" alt="Zexio Logo" className="w-6 h-6 object-contain flex-shrink-0" />
           <div>
-            <h1 className="text-lg font-bold tracking-tight text-white">Zexio Agent</h1>
+            <h1 className="text-base font-bold tracking-tight text-white">Zexio Agent</h1>
             <p className="text-xs text-gray-400">Local Dashboard</p>
           </div>
         </div>
-        <div className="px-3 py-1 text-xs font-medium text-green-400 bg-green-400/10 rounded-full border border-green-400/20 flex-shrink-0">
+        <div className="px-2 py-1 text-xs font-medium text-green-400 bg-green-400/10 rounded-full border border-green-400/20 flex-shrink-0">
           ● Online
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="p-6 max-w-[768px] mx-auto space-y-6">
+      <main className="p-4 space-y-4">
         {/* Status Cards */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-3 gap-3">
           <StatusCard
-            title="CPU Usage"
+            title="CPU"
             value="12%"
             status="success"
             icon={Cpu}
@@ -72,33 +72,31 @@ function App() {
         </div>
 
         {/* Tunnel Control */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          <TunnelControl
-            isActive={tunnelActive}
-            onStart={handleStartTunnel}
-            onStop={handleStopTunnel}
-          />
+        <TunnelControl
+          isActive={tunnelActive}
+          onStart={handleStartTunnel}
+          onStop={handleStopTunnel}
+        />
 
-          {tunnelActive && tunnelUrl && (
-            <Card variant="success">
-              <CardHeader>
-                <CardTitle className="text-white">Public URL</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-2 p-3 bg-gray-900 rounded-lg border border-gray-700">
-                  <span className="text-sm text-blue-400 font-mono flex-1 truncate">{tunnelUrl}</span>
-                  <Button
-                    onClick={handleCopy}
-                    size="sm"
-                    variant={copied ? "outline" : "default"}
-                  >
-                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </div>
+        {tunnelActive && tunnelUrl && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-sm text-white">Public URL</CardTitle>
+            </CardHeader>
+            <CardContent className="pb-4">
+              <div className="flex items-center gap-2 p-2 bg-gray-900 rounded-lg border border-gray-700">
+                <span className="text-xs text-blue-400 font-mono flex-1 truncate">{tunnelUrl}</span>
+                <Button
+                  onClick={handleCopy}
+                  size="sm"
+                  variant={copied ? "outline" : "default"}
+                >
+                  {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </main>
     </div>
   );
