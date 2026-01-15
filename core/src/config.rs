@@ -47,32 +47,87 @@ pub struct CloudSettings {
 
 /// Get OS-specific config directory
 fn get_config_dir() -> PathBuf {
+    // Check if running as root or with write permissions
+    let use_system_paths = is_root_or_has_system_access();
+    
     if cfg!(target_os = "windows") {
         // Windows: C:\ProgramData\Zexio
         PathBuf::from(env::var("PROGRAMDATA").unwrap_or_else(|_| "C:\\ProgramData".to_string()))
             .join("Zexio")
     } else if cfg!(target_os = "macos") {
-        // macOS: /Library/Application Support/Zexio
-        PathBuf::from("/Library/Application Support/Zexio")
+        if use_system_paths {
+            // macOS (system): /Library/Application Support/Zexio
+            PathBuf::from("/Library/Application Support/Zexio")
+        } else {
+            // macOS (user): ~/Library/Application Support/Zexio
+            dirs::home_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("Library")
+                .join("Application Support")
+                .join("Zexio")
+        }
     } else {
-        // Linux: /etc/zexio
-        PathBuf::from("/etc/zexio")
+        // Linux (including Raspberry Pi)
+        if use_system_paths {
+            // Linux (system): /etc/zexio
+            PathBuf::from("/etc/zexio")
+        } else {
+            // Linux (user/IoT): ~/.config/zexio
+            dirs::config_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("zexio")
+        }
     }
 }
 
 /// Get OS-specific data directory
 fn get_data_dir() -> PathBuf {
+    let use_system_paths = is_root_or_has_system_access();
+    
     if cfg!(target_os = "windows") {
         // Windows: C:\ProgramData\Zexio\data
         PathBuf::from(env::var("PROGRAMDATA").unwrap_or_else(|_| "C:\\ProgramData".to_string()))
             .join("Zexio")
             .join("data")
     } else if cfg!(target_os = "macos") {
-        // macOS: /Library/Application Support/Zexio/data
-        PathBuf::from("/Library/Application Support/Zexio/data")
+        if use_system_paths {
+            // macOS (system): /Library/Application Support/Zexio/data
+            PathBuf::from("/Library/Application Support/Zexio/data")
+        } else {
+            // macOS (user): ~/Library/Application Support/Zexio/data
+            dirs::home_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("Library")
+                .join("Application Support")
+                .join("Zexio")
+                .join("data")
+        }
     } else {
-        // Linux: /var/lib/zexio
-        PathBuf::from("/var/lib/zexio")
+        // Linux (including Raspberry Pi)
+        if use_system_paths {
+            // Linux (system): /var/lib/zexio
+            PathBuf::from("/var/lib/zexio")
+        } else {
+            // Linux (user/IoT): ~/.local/share/zexio
+            dirs::data_local_dir()
+                .unwrap_or_else(|| PathBuf::from("."))
+                .join("zexio")
+        }
+    }
+}
+
+/// Check if running as root or has system-level access
+fn is_root_or_has_system_access() -> bool {
+    #[cfg(unix)]
+    {
+        // On Unix (Linux/macOS), check if UID is 0 (root)
+        unsafe { libc::geteuid() == 0 }
+    }
+    
+    #[cfg(not(unix))]
+    {
+        // On Windows, assume system access (can be enhanced with Windows API)
+        true
     }
 }
 
