@@ -12,9 +12,11 @@
   "app": {
     "windows": [
       {
-        "title": "gui",
-        "width": 800,
-        "height": 600
+        "title": "Zexio Agent",
+        "width": 900,
+        "height": 650,
+        "resizable": true,
+        "fullscreen": false
       }
     ],
     "security": {

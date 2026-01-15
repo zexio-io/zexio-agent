@@ -1,17 +1,21 @@
 import { useState } from "react";
 import { TunnelControl } from "./components/TunnelControl";
 import { StatusCard } from "./components/StatusCard";
+import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
+import { Button } from "./components/ui/button";
+import { Cpu, HardDrive, Clock, Copy, Check } from "lucide-react";
 import "./App.css";
 
 function App() {
   const [tunnelActive, setTunnelActive] = useState(false);
   const [tunnelUrl, setTunnelUrl] = useState("");
+  const [copied, setCopied] = useState(false);
 
   const handleStartTunnel = async (provider: string, token: string) => {
     // TODO: Call Tauri backend API
     console.log("Starting tunnel:", { provider, token });
     setTunnelActive(true);
-    setTunnelUrl(`https://example-${provider}.tunnel.dev`);
+    setTunnelUrl(`https://example-${provider}.zexio.dev`);
   };
 
   const handleStopTunnel = async () => {
@@ -21,48 +25,54 @@ function App() {
     setTunnelUrl("");
   };
 
+  const handleCopy = () => {
+    navigator.clipboard.writeText(tunnelUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   return (
     <div className="min-h-screen bg-gray-900 text-white font-sans">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-4 bg-gray-800 border-b border-gray-700 shadow-md">
+      <header className="flex items-center justify-between px-6 py-3 bg-gray-800 border-b border-gray-700">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Zexio Logo" className="w-10 h-10 object-contain" />
+          <img src="/logo.png" alt="Zexio Logo" className="w-8 h-8 object-contain" />
           <div>
-            <h1 className="text-xl font-bold tracking-tight text-white">Zexio Agent</h1>
+            <h1 className="text-lg font-bold tracking-tight text-white">Zexio Agent</h1>
             <p className="text-xs text-gray-400">Local Dashboard</p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="px-3 py-1 text-xs font-medium text-green-400 bg-green-400/10 rounded-full border border-green-400/20">
-            ● Online
-          </div>
+        <div className="px-3 py-1 text-xs font-medium text-green-400 bg-green-400/10 rounded-full border border-green-400/20">
+          ● Online
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="p-8 max-w-6xl mx-auto">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+      <main className="p-6 max-w-5xl mx-auto space-y-6">
+        {/* Status Cards */}
+        <div className="grid grid-cols-3 gap-4">
           <StatusCard
             title="CPU Usage"
             value="12%"
             status="success"
-            icon="⚡"
+            icon={Cpu}
           />
           <StatusCard
             title="Memory"
             value="2.4 GB"
             status="neutral"
-            icon="💾"
+            icon={HardDrive}
           />
           <StatusCard
             title="Uptime"
             value="3h 24m"
             status="success"
-            icon="⏱️"
+            icon={Clock}
           />
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Tunnel Control */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <TunnelControl
             isActive={tunnelActive}
             onStart={handleStartTunnel}
@@ -70,18 +80,23 @@ function App() {
           />
 
           {tunnelActive && tunnelUrl && (
-            <div className="p-6 bg-gray-800 rounded-xl border border-green-500/30">
-              <h3 className="text-sm font-medium text-gray-400 mb-3">Public URL</h3>
-              <div className="flex items-center gap-2 p-3 bg-gray-900 rounded-lg border border-gray-700">
-                <span className="text-sm text-blue-400 font-mono flex-1 truncate">{tunnelUrl}</span>
-                <button
-                  onClick={() => navigator.clipboard.writeText(tunnelUrl)}
-                  className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded transition-colors"
-                >
-                  Copy
-                </button>
-              </div>
-            </div>
+            <Card variant="success">
+              <CardHeader>
+                <CardTitle className="text-white">Public URL</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-2 p-3 bg-gray-900 rounded-lg border border-gray-700">
+                  <span className="text-sm text-blue-400 font-mono flex-1 truncate">{tunnelUrl}</span>
+                  <Button
+                    onClick={handleCopy}
+                    size="sm"
+                    variant={copied ? "outline" : "default"}
+                  >
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
           )}
         </div>
       </main>

@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+import { Button } from "./ui/button";
+import { Activity, Loader2 } from "lucide-react";
 
 interface TunnelControlProps {
     onStart: (provider: string, token: string) => void;
@@ -20,67 +23,70 @@ export function TunnelControl({ onStart, onStop, isActive }: TunnelControlProps)
     };
 
     return (
-        <div className="p-6 bg-gray-800 rounded-xl border border-gray-700">
-            <div className="flex items-center justify-between mb-4">
-                <div>
-                    <h3 className="text-sm font-medium text-gray-400 mb-1">Tunnel Status</h3>
+        <Card variant={isActive ? "success" : "default"}>
+            <CardHeader>
+                <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-500' : 'bg-gray-600'}`} />
-                        <span className="text-2xl font-bold text-white">
-                            {isActive ? "Active" : "Inactive"}
-                        </span>
+                        <Activity className={`h-4 w-4 ${isActive ? 'text-green-400' : 'text-gray-400'}`} />
+                        <CardTitle className="text-white">Tunnel</CardTitle>
+                    </div>
+                    <div className={`flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium ${isActive
+                            ? 'bg-green-400/10 text-green-400 border border-green-400/20'
+                            : 'bg-gray-700 text-gray-400'
+                        }`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-green-400' : 'bg-gray-500'}`} />
+                        {isActive ? "Active" : "Inactive"}
                     </div>
                 </div>
+                <CardDescription className="text-gray-400">
+                    {isActive ? "Tunnel is running" : "Start a secure tunnel to expose your services"}
+                </CardDescription>
+            </CardHeader>
 
-                {isActive ? (
-                    <button
-                        onClick={onStop}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold rounded-lg transition-colors"
-                    >
-                        Stop Tunnel
-                    </button>
-                ) : (
-                    <button
-                        onClick={handleStart}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold rounded-lg transition-colors"
-                    >
-                        Start Tunnel
-                    </button>
-                )}
-            </div>
-
-            {!isActive && (
-                <div className="space-y-3 pt-4 border-t border-gray-700">
-                    <div>
-                        <label className="block text-xs font-medium text-gray-400 mb-2">
-                            Provider
-                        </label>
-                        <select
-                            value={provider}
-                            onChange={(e) => setProvider(e.target.value)}
-                            className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
-                        >
-                            <option value="cloudflare">Cloudflare Tunnel</option>
-                            <option value="pangolin">Pangolin Tunnel</option>
-                        </select>
-                    </div>
-
-                    {(showTokenInput || token) && (
+            <CardContent>
+                {!isActive && (
+                    <div className="space-y-3 mb-4">
                         <div>
                             <label className="block text-xs font-medium text-gray-400 mb-2">
-                                Auth Token
+                                Provider
                             </label>
-                            <input
-                                type="password"
-                                value={token}
-                                onChange={(e) => setToken(e.target.value)}
-                                placeholder="Enter your tunnel token..."
-                                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                            />
+                            <select
+                                value={provider}
+                                onChange={(e) => setProvider(e.target.value)}
+                                className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:border-blue-500"
+                            >
+                                <option value="cloudflare">Cloudflare Tunnel</option>
+                                <option value="pangolin">Pangolin Tunnel</option>
+                            </select>
                         </div>
-                    )}
-                </div>
-            )}
-        </div>
+
+                        {(showTokenInput || token) && (
+                            <div>
+                                <label className="block text-xs font-medium text-gray-400 mb-2">
+                                    Auth Token
+                                </label>
+                                <input
+                                    type="password"
+                                    value={token}
+                                    onChange={(e) => setToken(e.target.value)}
+                                    placeholder="Enter your tunnel token..."
+                                    className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                                />
+                            </div>
+                        )}
+                    </div>
+                )}
+
+                {isActive ? (
+                    <Button onClick={onStop} variant="destructive" className="w-full">
+                        Stop Tunnel
+                    </Button>
+                ) : (
+                    <Button onClick={handleStart} className="w-full">
+                        Start Tunnel
+                    </Button>
+                )}
+            </CardContent>
+        </Card>
     );
 }
