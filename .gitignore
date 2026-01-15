@@ -11,3 +11,5 @@ gui/dist/
 gui/build/
 gui/node_modules
 target/
+gui/src-tauri/binaries/
+gui/src-tauri/zexio_agent-*
