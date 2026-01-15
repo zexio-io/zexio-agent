@@ -2,6 +2,7 @@ use axum::{
     routing::{get, post, delete},
     Router,
 };
+use tower_http::cors::{CorsLayer, Any};
 use crate::{state::AppState, config::Settings, project, deploy, services, monitor, middleware, streams};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
@@ -50,9 +51,16 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
         .route("/tunnel/start", post(crate::tunnel::start_tunnel_handler))  // Moved to public
         .route("/tunnel/stop", post(crate::tunnel::stop_tunnel_handler));   // Moved to public
 
-    // Combine routes
+    // CORS configuration for GUI access
+    let cors = CorsLayer::new()
+        .allow_origin(Any)  // Allow all origins (Tauri apps)
+        .allow_methods(Any)  // Allow all HTTP methods
+        .allow_headers(Any); // Allow all headers
+
+    // Combine routes with CORS
     let app = public_routes
         .merge(protected_routes)
+        .layer(cors)  // Add CORS layer
         .with_state(state.clone());
 
     let mgmt_addr: SocketAddr = format!("{}:{}", settings.server.host, settings.server.port).parse()?;
