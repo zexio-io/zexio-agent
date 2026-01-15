@@ -13,7 +13,7 @@
     "windows": [
       {
         "title": "Zexio Agent",
-        "width": 900,
+        "width": 768,
         "height": 650,
         "resizable": true,
         "fullscreen": false

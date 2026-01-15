@@ -36,19 +36,19 @@ function App() {
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-3 bg-gray-800 border-b border-gray-700">
         <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Zexio Logo" className="w-8 h-8 object-contain" />
+          <img src="/logo.png" alt="Zexio Logo" className="w-7 h-7 object-contain flex-shrink-0" />
           <div>
             <h1 className="text-lg font-bold tracking-tight text-white">Zexio Agent</h1>
             <p className="text-xs text-gray-400">Local Dashboard</p>
           </div>
         </div>
-        <div className="px-3 py-1 text-xs font-medium text-green-400 bg-green-400/10 rounded-full border border-green-400/20">
+        <div className="px-3 py-1 text-xs font-medium text-green-400 bg-green-400/10 rounded-full border border-green-400/20 flex-shrink-0">
           ● Online
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="p-6 max-w-5xl mx-auto space-y-6">
+      <main className="p-6 max-w-[768px] mx-auto space-y-6">
         {/* Status Cards */}
         <div className="grid grid-cols-3 gap-4">
           <StatusCard
