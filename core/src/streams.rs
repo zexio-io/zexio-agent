@@ -1,17 +1,17 @@
+use crate::{errors::AppError, state::AppState};
 use axum::{
-    extract::{Path, State, Query},
+    extract::{Path, Query, State},
     response::sse::{Event, KeepAlive, Sse},
     Json,
 };
 use futures::stream::Stream;
+use serde::{Deserialize, Serialize};
 use std::convert::Infallible;
+use std::process::Stdio;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
-use std::process::Stdio;
 use tokio_stream::wrappers::LinesStream;
 use tokio_stream::StreamExt;
-use crate::{state::AppState, errors::AppError};
-use serde::{Serialize, Deserialize};
 
 #[derive(Serialize)]
 pub struct LogsResponse {
@@ -43,7 +43,7 @@ async fn get_journal_logs(unit_name: &str, lines: usize) -> Result<Vec<String>, 
 
     let logs_str = String::from_utf8_lossy(&output.stdout);
     let logs: Vec<String> = logs_str.lines().map(|s| s.to_string()).collect();
-    
+
     Ok(logs)
 }
 
@@ -69,25 +69,26 @@ pub async fn worker_logs_handler(
 
 // Helper to stream logs from journalctl
 // Uses kill_on_drop(true) to ensure the process is killed when the client disconnects.
-pub async fn stream_journal_logs(unit_name: String) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
-    
+pub async fn stream_journal_logs(
+    unit_name: String,
+) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     // Create a stream using async_stream or similar logic.
     // Since we need to yield from a spawned process, simpler to use a channel or `stream!` macro.
     // But `stream!` requires the `async-stream` crate which I haven't added.
     // I can use `futures::stream::unfold` or `try_stream` if avail.
     // Or I can just map a `LinesStream`.
-    
+
     let mut cmd = Command::new("journalctl");
     cmd.arg("-u")
-       .arg(&unit_name)
-       .arg("-f") // Follow
-       .arg("-n")
-       .arg("100") // Start with last 100 lines
-       .arg("--output=cat") // Cleaner output
-       .arg("--no-pager")
-       .stdout(Stdio::piped())
-       .stderr(Stdio::piped()) // Capture stderr too? strictly stdout usually enough for logs
-       .kill_on_drop(true); // CRITICAL: Kills process when handle is dropped
+        .arg(&unit_name)
+        .arg("-f") // Follow
+        .arg("-n")
+        .arg("100") // Start with last 100 lines
+        .arg("--output=cat") // Cleaner output
+        .arg("--no-pager")
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped()) // Capture stderr too? strictly stdout usually enough for logs
+        .kill_on_drop(true); // CRITICAL: Kills process when handle is dropped
 
     let stream = async_stream::stream! {
         let mut child = match cmd.spawn() {

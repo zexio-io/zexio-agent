@@ -2,10 +2,10 @@ use aes_gcm::{
     aead::{Aead, KeyInit},
     Aes256Gcm, Nonce,
 };
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
 use anyhow::{Context, Result};
+use hmac::{Hmac, Mac};
 use rand::Rng;
+use sha2::Sha256;
 use std::path::Path;
 
 #[derive(Clone)]
@@ -24,17 +24,18 @@ impl Crypto {
         } else {
             // Generate new master key
             let key = Self::generate_master_key();
-            
+
             // Create parent directory if not exists
             if let Some(parent) = Path::new(master_key_path).parent() {
-                std::fs::create_dir_all(parent)
-                    .with_context(|| format!("Failed to create directory for master key: {:?}", parent))?;
+                std::fs::create_dir_all(parent).with_context(|| {
+                    format!("Failed to create directory for master key: {:?}", parent)
+                })?;
             }
-            
+
             // Write key to file
             std::fs::write(master_key_path, &key)
                 .with_context(|| format!("Failed to write master key to {}", master_key_path))?;
-            
+
             tracing::info!("Generated new master key at {}", master_key_path);
             key
         };
@@ -92,20 +93,20 @@ impl Crypto {
     // HMAC-SHA256 verification
     pub fn verify_signature(secret: &str, body: &[u8], signature_hex: &str) -> bool {
         type HmacSha256 = Hmac<Sha256>;
-        
+
         let mut mac = match <HmacSha256 as Mac>::new_from_slice(secret.as_bytes()) {
             Ok(m) => m,
             Err(_) => return false,
         };
-        
+
         mac.update(body);
-        
+
         let expected_bytes = mac.finalize().into_bytes();
         let expected_hex = hex::encode(expected_bytes);
 
         // Remove "sha256=" prefix if present
         let clean_sig = signature_hex.trim_start_matches("sha256=");
-        
+
         expected_hex == clean_sig
     }
 }

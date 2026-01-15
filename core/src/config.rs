@@ -24,7 +24,6 @@ pub struct ServerSettings {
 #[derive(Debug, Deserialize, Clone)]
 pub struct StorageSettings {
     pub projects_dir: String,
-
 }
 
 #[derive(Debug, Deserialize, Clone)]
@@ -49,7 +48,7 @@ pub struct CloudSettings {
 fn get_config_dir() -> PathBuf {
     // Check if running as root or with write permissions
     let use_system_paths = is_root_or_has_system_access();
-    
+
     if cfg!(target_os = "windows") {
         // Windows: C:\ProgramData\Zexio
         PathBuf::from(env::var("PROGRAMDATA").unwrap_or_else(|_| "C:\\ProgramData".to_string()))
@@ -83,7 +82,7 @@ fn get_config_dir() -> PathBuf {
 /// Get OS-specific data directory
 fn get_data_dir() -> PathBuf {
     let use_system_paths = is_root_or_has_system_access();
-    
+
     if cfg!(target_os = "windows") {
         // Windows: C:\ProgramData\Zexio\data
         PathBuf::from(env::var("PROGRAMDATA").unwrap_or_else(|_| "C:\\ProgramData".to_string()))
@@ -123,7 +122,7 @@ fn is_root_or_has_system_access() -> bool {
         // On Unix (Linux/macOS), check if UID is 0 (root)
         unsafe { libc::geteuid() == 0 }
     }
-    
+
     #[cfg(not(unix))]
     {
         // On Windows, assume system access (can be enhanced with Windows API)
@@ -157,28 +156,44 @@ impl Settings {
             .set_default("server.host", "0.0.0.0")?
             .set_default("server.public_hostname", None::<String>)?
             .set_default("server.public_ip", None::<String>)?
-            
             // Default Storage Paths (OS-specific)
-            .set_default("storage.projects_dir", data_dir.join("apps").to_string_lossy().to_string())?
-            
+            .set_default(
+                "storage.projects_dir",
+                data_dir.join("apps").to_string_lossy().to_string(),
+            )?
             // Default Secrets Paths (OS-specific)
-            .set_default("secrets.worker_secret_path", config_dir.join("worker.secret").to_string_lossy().to_string())?
-            .set_default("secrets.master_key_path", config_dir.join("master.key").to_string_lossy().to_string())?
-            .set_default("secrets.identity_path", config_dir.join("identity.json").to_string_lossy().to_string())?
-            .set_default("secrets.provisioning_token_path", config_dir.join("provisioning_token").to_string_lossy().to_string())?
-
+            .set_default(
+                "secrets.worker_secret_path",
+                config_dir
+                    .join("worker.secret")
+                    .to_string_lossy()
+                    .to_string(),
+            )?
+            .set_default(
+                "secrets.master_key_path",
+                config_dir.join("master.key").to_string_lossy().to_string(),
+            )?
+            .set_default(
+                "secrets.identity_path",
+                config_dir
+                    .join("identity.json")
+                    .to_string_lossy()
+                    .to_string(),
+            )?
+            .set_default(
+                "secrets.provisioning_token_path",
+                config_dir
+                    .join("provisioning_token")
+                    .to_string_lossy()
+                    .to_string(),
+            )?
             // Default Cloud Settings
             .set_default("cloud.api_url", "https://api.zexio.io")?
             .set_default("debug", false)?
-            
             // Load config file if exists
+            .add_source(config::File::with_name(&format!("config/{}", env)).required(false))
             .add_source(
-                config::File::with_name(&format!("config/{}", env))
-                    .required(false)
-            )
-            .add_source(
-                config::Environment::with_prefix("ZEXIO")
-                    .separator("__") // ZEXIO_CLOUD__API_URL overrides cloud.api_url
+                config::Environment::with_prefix("ZEXIO").separator("__"), // ZEXIO_CLOUD__API_URL overrides cloud.api_url
             )
             .build()?;
 

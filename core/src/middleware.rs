@@ -1,3 +1,4 @@
+use crate::{crypto::Crypto, state::AppState};
 use axum::{
     body::Body,
     extract::{Request, State},
@@ -5,7 +6,6 @@ use axum::{
     middleware::Next,
     response::Response,
 };
-use crate::{state::AppState, crypto::Crypto};
 use tracing::warn;
 
 /// Smart authentication middleware that:
@@ -17,14 +17,14 @@ pub async fn smart_auth_middleware(
     next: Next,
 ) -> Result<Response, StatusCode> {
     // Check if we're in cloud mode
-    let is_cloud_mode = state.settings.cloud.token.is_some() 
-        && state.settings.cloud.worker_id.is_some();
-    
+    let is_cloud_mode =
+        state.settings.cloud.token.is_some() && state.settings.cloud.worker_id.is_some();
+
     // Standalone mode: no auth required
     if !is_cloud_mode {
         return Ok(next.run(request).await);
     }
-    
+
     // Cloud mode: require authentication
     worker_auth_middleware(State(state), request, next).await
 }
@@ -57,6 +57,6 @@ pub async fn worker_auth_middleware(
 
     // Reconstruct request with body
     let request = Request::from_parts(parts, Body::from(bytes));
-    
+
     Ok(next.run(request).await)
 }

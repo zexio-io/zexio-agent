@@ -37,12 +37,12 @@ async fn get_system_stats() -> Result<SystemStats, String> {
         .send()
         .await
         .map_err(|e| format!("Failed to fetch stats: {}", e))?;
-    
+
     let stats = response
         .json::<SystemStats>()
         .await
         .map_err(|e| format!("Failed to parse stats: {}", e))?;
-    
+
     Ok(stats)
 }
 
@@ -54,30 +54,41 @@ async fn health_check() -> Result<String, String> {
         .send()
         .await
         .map_err(|e| format!("Agent not running: {}", e))?;
-    
+
     let status = response
         .text()
         .await
         .map_err(|e| format!("Failed to read response: {}", e))?;
-    
+
     Ok(status)
 }
 
 #[tauri::command]
-async fn start_tunnel(provider: String, token: String, local_port: Option<u16>) -> Result<String, String> {
+async fn start_tunnel(
+    provider: String,
+    token: String,
+    local_port: Option<u16>,
+) -> Result<String, String> {
     let client = reqwest::Client::new();
-    let request_body = TunnelStartRequest { provider, token, local_port };
-    
+    let request_body = TunnelStartRequest {
+        provider,
+        token,
+        local_port,
+    };
+
     let response = client
         .post(format!("{}/tunnel/start", AGENT_API_URL))
         .json(&request_body)
         .send()
         .await
         .map_err(|e| format!("Failed to start tunnel: {}", e))?;
-    
+
     // Return the raw JSON body string on success, or error details
     if response.status().is_success() {
-        let text = response.text().await.map_err(|e| format!("Failed to read success response: {}", e))?;
+        let text = response
+            .text()
+            .await
+            .map_err(|e| format!("Failed to read success response: {}", e))?;
         Ok(text)
     } else {
         let error = response
@@ -91,13 +102,13 @@ async fn start_tunnel(provider: String, token: String, local_port: Option<u16>) 
 #[tauri::command]
 async fn stop_tunnel() -> Result<String, String> {
     let client = reqwest::Client::new();
-    
+
     let response = client
         .post(format!("{}/tunnel/stop", AGENT_API_URL))
         .send()
         .await
         .map_err(|e| format!("Failed to stop tunnel: {}", e))?;
-    
+
     if response.status().is_success() {
         Ok("Tunnel stopped successfully".to_string())
     } else {

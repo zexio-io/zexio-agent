@@ -2,7 +2,7 @@ use crate::config::Settings;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
-use tracing::{info, error};
+use tracing::{error, info};
 
 #[derive(Serialize)]
 struct RegisterDto {
@@ -41,8 +41,9 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
 
         let client = reqwest::Client::new();
         let api_url = format!("{}/workers/heartbeat", settings.cloud.api_url);
-        
-        let res = client.post(api_url)
+
+        let res = client
+            .post(api_url)
             .json(&serde_json::json!({
                 "worker_id": identity.worker_id,
                 "secret": identity.secret_key,
@@ -53,7 +54,9 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
         if res.status().is_success() {
             info!("Identity verified. Agent is online.");
             return Ok(()).map_err(|e: anyhow::Error| e);
-        } else if res.status() == reqwest::StatusCode::FORBIDDEN || res.status() == reqwest::StatusCode::NOT_FOUND {
+        } else if res.status() == reqwest::StatusCode::FORBIDDEN
+            || res.status() == reqwest::StatusCode::NOT_FOUND
+        {
             error!("Identity no longer valid in cloud. Resetting local identity.");
             let _ = fs::remove_file(identity_path);
         } else {
@@ -61,7 +64,10 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
             if settings.debug {
                 info!("DEBUG: Heartbeat response: {}", res_text);
             }
-            error!("Heartbeat failed: {}. Continuing with existing identity.", res_text);
+            error!(
+                "Heartbeat failed: {}. Continuing with existing identity.",
+                res_text
+            );
             return Ok(()); // Don't block startup if cloud is just down
         }
     }
@@ -69,7 +75,7 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
     // 2. Check for Provisioning Token
     // Priority: Env/Config (settings.cloud.token) -> File (settings.secrets.provisioning_token_path)
     let token_path = &settings.secrets.provisioning_token_path;
-    
+
     let token = if let Some(t) = &settings.cloud.token {
         info!("Using provisioning token from configuration/env.");
         t.clone()
@@ -89,7 +95,10 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
     let os = sysinfo::System::name().unwrap_or("unknown".to_string());
     let arch = sysinfo::System::cpu_arch().unwrap_or("unknown".to_string());
 
-    info!("System Info: Hostname={}, OS={}, Arch={}", hostname, os, arch);
+    info!(
+        "System Info: Hostname={}, OS={}, Arch={}",
+        hostname, os, arch
+    );
 
     let client = reqwest::Client::new();
     let dto = RegisterDto {
@@ -102,8 +111,9 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
 
     // 4. Send Registration Request
     let api_url = format!("{}/workers/register", settings.cloud.api_url);
-    
-    let res = client.post(api_url)
+
+    let res = client
+        .post(api_url)
         .header("X-Zexio-Token", &dto.token)
         .json(&dto)
         .send()
@@ -130,7 +140,7 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
 
     let identity_json = serde_json::to_string_pretty(&identity)?;
     fs::write(identity_path, identity_json)?;
-    
+
     // Secure the file
     // Secure the file (Unix only)
     #[cfg(unix)]
@@ -141,7 +151,10 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
         fs::set_permissions(identity_path, perms)?;
     }
 
-    info!("Registration successful! Assigned Worker ID: {}", identity.worker_id);
+    info!(
+        "Registration successful! Assigned Worker ID: {}",
+        identity.worker_id
+    );
     info!("Identity saved at {}.", identity_path);
 
     // 6. Cleanup Token (Security Best Practice)
@@ -154,7 +167,9 @@ pub async fn unregister(settings: &Settings) -> anyhow::Result<()> {
     let identity_path = &settings.secrets.identity_path;
 
     if !Path::new(identity_path).exists() {
-        return Err(anyhow::anyhow!("No identity found. Agent is not registered."));
+        return Err(anyhow::anyhow!(
+            "No identity found. Agent is not registered."
+        ));
     }
 
     let identity_json = fs::read_to_string(identity_path)?;
@@ -165,7 +180,8 @@ pub async fn unregister(settings: &Settings) -> anyhow::Result<()> {
     let client = reqwest::Client::new();
     let api_url = format!("{}/workers/unregister", settings.cloud.api_url);
 
-    let res = client.post(api_url)
+    let res = client
+        .post(api_url)
         .json(&serde_json::json!({
             "worker_id": identity.worker_id,
             "secret": identity.secret_key,

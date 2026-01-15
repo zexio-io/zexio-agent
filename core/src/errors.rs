@@ -38,7 +38,10 @@ impl IntoResponse for AppError {
             AppError::InternalServerError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Internal server error")
             }
-            AppError::BadRequest(msg) => (StatusCode::BAD_REQUEST, Box::leak(msg.into_boxed_str()) as &str),
+            AppError::BadRequest(msg) => (
+                StatusCode::BAD_REQUEST,
+                Box::leak(msg.into_boxed_str()) as &str,
+            ),
         };
 
         let body = Json(json!({

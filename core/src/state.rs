@@ -18,19 +18,22 @@ impl AppState {
     pub fn new(settings: Settings) -> Result<Self> {
         // Ensure all required directories exist
         Self::ensure_directories(&settings)?;
-        
+
         // Initialize crypto (auto-generates master key if needed)
         let crypto = Crypto::new(&settings.secrets.master_key_path)?;
 
         // Load or generate worker secret
-        let worker_secret = Self::load_or_generate_worker_secret(&settings.secrets.worker_secret_path)?;
+        let worker_secret =
+            Self::load_or_generate_worker_secret(&settings.secrets.worker_secret_path)?;
 
         // Initialize Redis
-        let redis_url = std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
+        let redis_url =
+            std::env::var("REDIS_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
         let redis = redis::Client::open(redis_url)?;
 
         // Mesh JWT Secret
-        let mesh_jwt_secret = std::env::var("MESH_JWT_SECRET").unwrap_or_else(|_| "zexio-mesh-secret-key".to_string());
+        let mesh_jwt_secret = std::env::var("MESH_JWT_SECRET")
+            .unwrap_or_else(|_| "zexio-mesh-secret-key".to_string());
 
         Ok(Self {
             store: crate::storage::ProjectStore::new(&settings.storage.projects_dir),
@@ -48,7 +51,10 @@ impl AppState {
         // Create projects directory
         if !Path::new(&settings.storage.projects_dir).exists() {
             fs::create_dir_all(&settings.storage.projects_dir)?;
-            tracing::info!("Created projects directory: {}", settings.storage.projects_dir);
+            tracing::info!(
+                "Created projects directory: {}",
+                settings.storage.projects_dir
+            );
         }
 
         // Create secrets directory (parent of all secret files)
@@ -70,16 +76,16 @@ impl AppState {
         } else {
             // Generate new worker secret
             let secret = Self::generate_secret();
-            
+
             // Create parent directory if needed
             if let Some(parent) = Path::new(path).parent() {
                 fs::create_dir_all(parent)?;
             }
-            
+
             // Write secret to file
             fs::write(path, &secret)?;
             tracing::info!("Generated new worker secret at {}", path);
-            
+
             Ok(secret)
         }
     }

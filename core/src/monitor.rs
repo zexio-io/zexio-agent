@@ -1,15 +1,15 @@
+use crate::{errors::AppError, state::AppState};
 use axum::{
     extract::{Path, State},
-    Json,
     response::sse::{Event, KeepAlive, Sse},
+    Json,
 };
-use serde::{Serialize, Deserialize};
-use sysinfo::{System, RefreshKind, CpuRefreshKind, MemoryRefreshKind};
-use crate::{state::AppState, errors::AppError};
+use futures::stream::Stream;
+use serde::{Deserialize, Serialize};
+use std::convert::Infallible;
 use std::process::Command;
 use std::time::Duration;
-use futures::stream::Stream;
-use std::convert::Infallible;
+use sysinfo::{CpuRefreshKind, MemoryRefreshKind, RefreshKind, System};
 
 #[derive(Serialize)]
 pub struct SystemStats {
@@ -54,7 +54,7 @@ pub async fn global_stats_handler(
             (used, total)
         })
         .unwrap_or((0, 0));
-    
+
     let disk_percent = if disk_total > 0 {
         (disk_used as f32 / disk_total as f32) * 100.0
     } else {
@@ -112,7 +112,7 @@ pub async fn global_stats_stream(
                     (used, total)
                 })
                 .unwrap_or((0, 0));
-            
+
             let disk_percent = if disk_total > 0 {
                 (disk_used as f32 / disk_total as f32) * 100.0
             } else {
@@ -145,7 +145,6 @@ pub async fn global_stats_stream(
     Sse::new(stream).keep_alive(KeepAlive::default())
 }
 
-
 #[derive(Serialize)]
 pub struct ProjectStatus {
     status: String,
@@ -158,7 +157,7 @@ pub async fn project_monitor_handler(
     Path(project_id): Path<String>,
 ) -> Result<Json<ProjectStatus>, AppError> {
     let unit_name = format!("app@{}.service", project_id);
-    
+
     let output = Command::new("systemctl")
         .arg("is-active")
         .arg(&unit_name)
@@ -178,7 +177,7 @@ pub async fn project_monitor_stream(
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let stream = async_stream::stream! {
         let unit_name = format!("app@{}.service", project_id);
-        
+
         loop {
             let output = Command::new("systemctl")
                 .arg("is-active")
@@ -211,9 +210,7 @@ pub struct SyncResponse {
 }
 
 // Manual sync endpoint for dashboard to trigger
-pub async fn sync_handler(
-    State(state): State<AppState>,
-) -> Result<Json<SyncResponse>, AppError> {
+pub async fn sync_handler(State(state): State<AppState>) -> Result<Json<SyncResponse>, AppError> {
     // Reuse global_stats logic
     let mut sys = System::new_with_specifics(
         RefreshKind::new()
@@ -240,7 +237,7 @@ pub async fn sync_handler(
             (used, total)
         })
         .unwrap_or((0, 0));
-    
+
     let disk_percent = if disk_total > 0 {
         (disk_used as f32 / disk_total as f32) * 100.0
     } else {
@@ -280,7 +277,7 @@ pub async fn configure_firewall_handler(
     Json(payload): Json<ConfigureFirewallRequest>,
 ) -> Result<Json<SyncResponse>, AppError> {
     use crate::mesh::firewall::FirewallManager;
-    
+
     FirewallManager::update_rules(payload.port, &payload.allowed_tenants)
         .map_err(|_| AppError::InternalServerError)?;
 
@@ -303,4 +300,3 @@ fn get_dummy_stats() -> SystemStats {
         disk_percent: 0.0,
     }
 }
-

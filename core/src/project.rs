@@ -1,15 +1,15 @@
+use crate::storage::ProjectConfig;
+use crate::{errors::AppError, state::AppState};
 use axum::{
-    extract::{State, Json, Path},
+    extract::{Json, Path, State},
     http::StatusCode,
     response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
-use crate::{state::AppState, errors::AppError};
-use crate::storage::ProjectConfig;
-use trust_dns_resolver::TokioAsyncResolver;
-use tracing::{info, warn};
 use std::fs;
 use std::process::Command;
+use tracing::{info, warn};
+use trust_dns_resolver::TokioAsyncResolver;
 
 #[derive(Deserialize)]
 pub struct CreateProjectRequest {
@@ -37,16 +37,25 @@ pub async fn create_project(
     };
 
     // Save to storage
-    state.store.create(config).await
+    state
+        .store
+        .create(config)
+        .await
         .map_err(|_| AppError::InternalServerError)?;
 
-    info!("Project {} created successfully on port {}", req.project_id, port);
+    info!(
+        "Project {} created successfully on port {}",
+        req.project_id, port
+    );
 
-    Ok((StatusCode::CREATED, Json(serde_json::json!({
-        "project_id": req.project_id,
-        "port": port,
-        "status": "created"
-    }))))
+    Ok((
+        StatusCode::CREATED,
+        Json(serde_json::json!({
+            "project_id": req.project_id,
+            "port": port,
+            "status": "created"
+        })),
+    ))
 }
 
 #[derive(Deserialize)]
@@ -62,14 +71,20 @@ pub async fn update_env_handler(
     info!("Updating environment for project: {}", project_id);
 
     // Read existing config
-    let mut config = state.store.read(&project_id).await
+    let mut config = state
+        .store
+        .read(&project_id)
+        .await
         .map_err(|_| AppError::BadRequest("Project not found".into()))?;
 
     // Update encrypted env
     config.encrypted_env = payload.encrypted_env;
 
     // Save
-    state.store.update(&config).await
+    state
+        .store
+        .update(&config)
+        .await
         .map_err(|_| AppError::InternalServerError)?;
 
     Ok((StatusCode::OK, "Environment updated"))
@@ -86,12 +101,12 @@ pub async fn add_domain_handler(
     Json(payload): Json<DomainRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let domain = payload.domain;
-    
+
     // 1. Verify Domain (CNAME or A Record)
     let resolver = TokioAsyncResolver::tokio_from_system_conf().unwrap_or_else(|_| {
         TokioAsyncResolver::tokio(
-           trust_dns_resolver::config::ResolverConfig::google(),
-           trust_dns_resolver::config::ResolverOpts::default(),
+            trust_dns_resolver::config::ResolverConfig::google(),
+            trust_dns_resolver::config::ResolverOpts::default(),
         )
     });
 
@@ -99,7 +114,7 @@ pub async fn add_domain_handler(
         Ok(lookup) => lookup.iter().collect::<Vec<_>>(),
         Err(e) => {
             warn!("DNS lookup failed for {}: {}", domain, e);
-            vec![] 
+            vec![]
         }
     };
 
@@ -108,50 +123,68 @@ pub async fn add_domain_handler(
     // Check 1: Match Static Public IP
     if let Some(pub_ip) = &state.settings.server.public_ip {
         if let Ok(expected_ip) = pub_ip.parse::<std::net::IpAddr>() {
-             if resolved_ips.contains(&expected_ip) {
-                 info!("Domain {} verified via Public IP match ({})", domain, expected_ip);
-                 verified = true;
-             }
+            if resolved_ips.contains(&expected_ip) {
+                info!(
+                    "Domain {} verified via Public IP match ({})",
+                    domain, expected_ip
+                );
+                verified = true;
+            }
         }
     }
 
     // Check 2: Match Public Hostname (Resolve & Compare)
     if !verified {
         if let Some(pub_host) = &state.settings.server.public_hostname {
-             if let Ok(host_lookup) = resolver.lookup_ip(pub_host.as_str()).await {
-                 let host_ips: Vec<_> = host_lookup.iter().collect();
-                 for user_ip in &resolved_ips {
-                     if host_ips.contains(user_ip) {
-                         info!("Domain {} verified via Public Hostname resolution match ({})", domain, user_ip);
-                         verified = true;
-                         break;
-                     }
-                 }
-             }
+            if let Ok(host_lookup) = resolver.lookup_ip(pub_host.as_str()).await {
+                let host_ips: Vec<_> = host_lookup.iter().collect();
+                for user_ip in &resolved_ips {
+                    if host_ips.contains(user_ip) {
+                        info!(
+                            "Domain {} verified via Public Hostname resolution match ({})",
+                            domain, user_ip
+                        );
+                        verified = true;
+                        break;
+                    }
+                }
+            }
         }
     }
 
     // Pass for Dev/Testing if configured to bypass or if both are missing
-    if state.settings.server.public_ip.is_none() && state.settings.server.public_hostname.is_none() {
+    if state.settings.server.public_ip.is_none() && state.settings.server.public_hostname.is_none()
+    {
         warn!("No public_ip or public_hostname configured. Skipping DNS verification.");
         verified = true;
     }
 
     if !verified && !resolved_ips.is_empty() {
-         warn!("DNS verification failed for {}. Resolved: {:?}. Expected IP: {:?} or Host: {:?}", 
-             domain, resolved_ips, state.settings.server.public_ip, state.settings.server.public_hostname);
+        warn!(
+            "DNS verification failed for {}. Resolved: {:?}. Expected IP: {:?} or Host: {:?}",
+            domain,
+            resolved_ips,
+            state.settings.server.public_ip,
+            state.settings.server.public_hostname
+        );
     }
 
     // 2. Determine Port
     let _port = 8000 + (crc32fast::hash(project_id.as_bytes()) % 1000) as u16;
 
     // 3. Update Config (Append domain)
-    let mut config = state.store.read(&project_id).await
+    let mut config = state
+        .store
+        .read(&project_id)
+        .await
         .map_err(|_| AppError::BadRequest("Project not found".into()))?;
 
     if !config.domains.contains(&domain) {
         config.domains.push(domain.clone());
-        state.store.update(&config).await
+        state
+            .store
+            .update(&config)
+            .await
             .map_err(|_| AppError::InternalServerError)?;
     }
 
@@ -166,12 +199,18 @@ pub async fn remove_domain_handler(
     let domain = payload.domain;
 
     // 1. Update Config (Remove domain)
-    let mut config = state.store.read(&project_id).await
+    let mut config = state
+        .store
+        .read(&project_id)
+        .await
         .map_err(|_| AppError::BadRequest("Project not found".into()))?;
 
     config.domains.retain(|d| d != &domain);
-    
-    state.store.update(&config).await
+
+    state
+        .store
+        .update(&config)
+        .await
         .map_err(|_| AppError::InternalServerError)?;
 
     Ok((StatusCode::OK, "Domain removed").into_response())
@@ -188,8 +227,10 @@ pub async fn list_files_handler(
     State(state): State<AppState>,
     Path(project_id): Path<String>,
 ) -> Result<Json<Vec<FileInfo>>, AppError> {
-    
-    let base_path = format!("{}/{}/bundle", state.settings.storage.projects_dir, project_id);
+    let base_path = format!(
+        "{}/{}/bundle",
+        state.settings.storage.projects_dir, project_id
+    );
     let mut entries = Vec::new();
 
     if let Ok(dir) = fs::read_dir(&base_path) {
@@ -204,7 +245,7 @@ pub async fn list_files_handler(
             }
         }
     } else {
-        return Ok(Json(vec![])); 
+        return Ok(Json(vec![]));
     }
 
     Ok(Json(entries))
@@ -220,14 +261,20 @@ pub struct ProjectSummary {
 pub async fn list_projects_handler(
     State(state): State<AppState>,
 ) -> Result<Json<Vec<ProjectSummary>>, AppError> {
-    let configs = state.store.list().await
+    let configs = state
+        .store
+        .list()
+        .await
         .map_err(|_| AppError::InternalServerError)?;
 
-    let summaries: Vec<ProjectSummary> = configs.into_iter().map(|c| ProjectSummary {
-        id: c.id,
-        domains: c.domains,
-        created_at: c.created_at.to_rfc3339(),
-    }).collect();
+    let summaries: Vec<ProjectSummary> = configs
+        .into_iter()
+        .map(|c| ProjectSummary {
+            id: c.id,
+            domains: c.domains,
+            created_at: c.created_at.to_rfc3339(),
+        })
+        .collect();
 
     Ok(Json(summaries))
 }
@@ -245,7 +292,10 @@ pub async fn delete_project_handler(
         .output();
 
     // 2. Delete project directory (includes config.json and bundle)
-    state.store.delete(&project_id).await
+    state
+        .store
+        .delete(&project_id)
+        .await
         .map_err(|_| AppError::InternalServerError)?;
 
     // 3. Remove from Caddy (all domains)

@@ -1,16 +1,16 @@
+use crate::{errors::AppError, state::AppState};
 use axum::{
-    extract::{State, Json},
-    response::IntoResponse,
+    extract::{Json, State},
     http::StatusCode,
+    response::IntoResponse,
 };
 use serde::{Deserialize, Serialize};
 use std::process::Command;
-use crate::{state::AppState, errors::AppError};
-use tracing::{info, error};
+use tracing::{error, info};
 
 #[derive(Deserialize)]
 pub struct InstallServiceRequest {
-    pub service: String, 
+    pub service: String,
 }
 
 #[derive(Serialize)]
@@ -29,16 +29,22 @@ pub async fn install_service_handler(
 
     match install_package(service).await {
         Ok(cmd_executed) => {
-            info!("Service {} installed successfully via: {}", service, cmd_executed);
-            Ok((StatusCode::OK, Json(ServiceResponse {
-                status: "installed".to_string(),
-                service: service.to_string(),
-                command: cmd_executed,
-            })))
+            info!(
+                "Service {} installed successfully via: {}",
+                service, cmd_executed
+            );
+            Ok((
+                StatusCode::OK,
+                Json(ServiceResponse {
+                    status: "installed".to_string(),
+                    service: service.to_string(),
+                    command: cmd_executed,
+                }),
+            ))
         }
         Err(e) => {
             error!("Installation failed: {}", e);
-            Err(AppError::InternalServerError) 
+            Err(AppError::InternalServerError)
         }
     }
 }
@@ -68,7 +74,8 @@ async fn install_package(service: &str) -> Result<String, String> {
 #[cfg(target_os = "linux")]
 async fn install_linux(service: &str) -> Result<String, String> {
     let script = match service {
-        "nodejs" => r#"
+        "nodejs" => {
+            r#"
             if ! command -v node &> /dev/null; then
                 curl -fsSL https://deb.nodesource.com/setup_lts.x | sudo -E bash - && \
                 sudo -E apt-get install -y nodejs && \
@@ -76,16 +83,20 @@ async fn install_linux(service: &str) -> Result<String, String> {
             else
                 echo "already installed"
             fi
-        "#,
-        "postgres" => r#"
+        "#
+        }
+        "postgres" => {
+            r#"
             if ! command -v psql &> /dev/null; then
                 sudo -E apt-get install -y postgresql postgresql-contrib && \
                 sudo -E systemctl enable --now postgresql
             else
                 echo "already installed"
             fi
-        "#,
-        "redis" => r#"
+        "#
+        }
+        "redis" => {
+            r#"
             if ! command -v redis-server &> /dev/null; then
                 sudo -E apt-get install -y redis-server && \
                 sudo -E sed -i 's/^supervised no/supervised systemd/' /etc/redis/redis.conf && \
@@ -94,7 +105,8 @@ async fn install_linux(service: &str) -> Result<String, String> {
             else
                 echo "already installed"
             fi
-        "#,
+        "#
+        }
         name => {
             if !name.chars().all(|c| c.is_alphanumeric() || c == '-') {
                 return Err("Invalid service name".to_string());
@@ -112,17 +124,14 @@ async fn install_linux(service: &str) -> Result<String, String> {
     if !output.status.success() {
         return Err(String::from_utf8_lossy(&output.stderr).to_string());
     }
-    
+
     // Return a descriptive string for complex scripts
     Ok(format!("bash script execution for {}", service))
 }
 
 #[cfg(target_os = "linux")]
 async fn install_linux_generic(service: &str) -> Result<String, String> {
-     let script = format!(
-        "sudo -E apt-get install -y {}", 
-        service
-    );
+    let script = format!("sudo -E apt-get install -y {}", service);
     let output = Command::new("bash")
         .arg("-c")
         .arg(&script)
@@ -188,16 +197,22 @@ pub async fn uninstall_service_handler(
 
     match uninstall_package(service).await {
         Ok(cmd_executed) => {
-            info!("Service {} uninstalled successfully via: {}", service, cmd_executed);
-            Ok((StatusCode::OK, Json(ServiceResponse {
-                status: "uninstalled".to_string(),
-                service: service.to_string(),
-                command: cmd_executed,
-            })))
+            info!(
+                "Service {} uninstalled successfully via: {}",
+                service, cmd_executed
+            );
+            Ok((
+                StatusCode::OK,
+                Json(ServiceResponse {
+                    status: "uninstalled".to_string(),
+                    service: service.to_string(),
+                    command: cmd_executed,
+                }),
+            ))
         }
         Err(e) => {
             error!("Uninstallation failed: {}", e);
-            Err(AppError::InternalServerError) 
+            Err(AppError::InternalServerError)
         }
     }
 }
@@ -226,14 +241,11 @@ async fn uninstall_package(service: &str) -> Result<String, String> {
 
 #[cfg(target_os = "linux")]
 async fn uninstall_linux(service: &str) -> Result<String, String> {
-     if !service.chars().all(|c| c.is_alphanumeric() || c == '-') {
+    if !service.chars().all(|c| c.is_alphanumeric() || c == '-') {
         return Err("Invalid service name".to_string());
     }
 
-     let script = format!(
-        "sudo -E apt-get remove -y {}", 
-        service
-    );
+    let script = format!("sudo -E apt-get remove -y {}", service);
     let output = Command::new("bash")
         .arg("-c")
         .arg(&script)

@@ -1,11 +1,11 @@
-use async_trait::async_trait;
-use pingora::prelude::*;
-use std::sync::Arc;
 use crate::state::AppState;
-use tracing::{error, debug, info};
-use jsonwebtoken::{decode, DecodingKey, Validation, Algorithm};
-use serde::{Deserialize, Serialize};
+use async_trait::async_trait;
+use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
+use pingora::prelude::*;
 use redis::AsyncCommands;
+use serde::{Deserialize, Serialize};
+use std::sync::Arc;
+use tracing::{debug, error, info};
 
 pub struct ZexioMeshLogic {
     pub state: AppState,
@@ -40,8 +40,17 @@ impl ProxyHttp for ZexioMeshLogic {
     }
 
     async fn request_filter(&self, session: &mut Session, ctx: &mut Self::CTX) -> Result<bool> {
-        let host_header = session.req_header().headers.get("Host").map(|v| v.to_str().unwrap_or("")).unwrap_or("");
-        let host = host_header.split(':').next().unwrap_or(host_header).to_string();
+        let host_header = session
+            .req_header()
+            .headers
+            .get("Host")
+            .map(|v| v.to_str().unwrap_or(""))
+            .unwrap_or("");
+        let host = host_header
+            .split(':')
+            .next()
+            .unwrap_or(host_header)
+            .to_string();
 
         debug!("ZexioMesh: Receiving request for host: {}", host);
 
@@ -55,19 +64,21 @@ impl ProxyHttp for ZexioMeshLogic {
         };
 
         // 2. Auth Validation
-        let auth_header = session.req_header().headers.get("Authorization").map(|v| v.to_str().unwrap_or(""));
-        
+        let auth_header = session
+            .req_header()
+            .headers
+            .get("Authorization")
+            .map(|v| v.to_str().unwrap_or(""));
+
         let is_authorized = if let Some(auth_str) = auth_header {
             if let Some(token) = auth_str.strip_prefix("Bearer ") {
                 let mut validation = Validation::new(Algorithm::HS256);
                 validation.set_issuer(&["zexio-service-mesh"]);
-                
+
                 let decoding_key = DecodingKey::from_secret(self.state.mesh_jwt_secret.as_bytes());
-                
+
                 match decode::<ServiceTokenClaims>(token, &decoding_key, &validation) {
-                    Ok(token_data) => {
-                         token_data.claims.org_id == target_org_id
-                    },
+                    Ok(token_data) => token_data.claims.org_id == target_org_id,
                     Err(e) => {
                         error!("Mesh token validation failed: {}", e);
                         false
@@ -96,17 +107,23 @@ impl ProxyHttp for ZexioMeshLogic {
         Ok(false) // Continue to upstream_peer
     }
 
-    async fn upstream_peer(&self, _session: &mut Session, ctx: &mut Self::CTX) -> Result<Box<HttpPeer>> {
-        let ctx = ctx.as_ref().ok_or_else(|| pingora::Error::new(ErrorType::InternalError))?;
+    async fn upstream_peer(
+        &self,
+        _session: &mut Session,
+        ctx: &mut Self::CTX,
+    ) -> Result<Box<HttpPeer>> {
+        let ctx = ctx
+            .as_ref()
+            .ok_or_else(|| pingora::Error::new(ErrorType::InternalError))?;
 
         info!("Proxying to {}:{}", ctx.target_host, ctx.target_port);
 
         let peer = Box::new(HttpPeer::new(
             (ctx.target_host.as_str(), ctx.target_port),
-            false, // TLS? For now false (internal mesh)
+            false,          // TLS? For now false (internal mesh)
             "".to_string(), // SNI
         ));
-        
+
         Ok(peer)
     }
 }
@@ -114,50 +131,57 @@ impl ProxyHttp for ZexioMeshLogic {
 impl ZexioMeshLogic {
     // Helper function (copied logic from proxy.rs but adapted)
     async fn resolve_mesh_dns(&self, host: &str) -> Result<(String, u16, String), ()> {
-         // Format: {userId}.{serviceSlug}.zexio.internal
-         if host.ends_with(".zexio.internal") {
+        // Format: {userId}.{serviceSlug}.zexio.internal
+        if host.ends_with(".zexio.internal") {
             let parts: Vec<&str> = host.split('.').collect();
-            
+
             if parts.len() >= 4 {
-                let mut conn = self.state.redis.get_async_connection().await.map_err(|_| ())?;
+                let mut conn = self
+                    .state
+                    .redis
+                    .get_async_connection()
+                    .await
+                    .map_err(|_| ())?;
                 let redis_key = format!("service:{}", host);
-                let service_info: std::collections::HashMap<String, String> = conn.hgetall(redis_key).await.map_err(|_| ())?;
-    
+                let service_info: std::collections::HashMap<String, String> =
+                    conn.hgetall(redis_key).await.map_err(|_| ())?;
+
                 if let Some(target_ip) = service_info.get("worker_ip") {
-                    let port = service_info.get("port")
+                    let port = service_info
+                        .get("port")
                         .and_then(|p| p.parse().ok())
                         .unwrap_or(80);
-                    
+
                     let owner_id = service_info.get("owner_id").cloned().unwrap_or_default();
-                    
+
                     let is_on_this_worker = match &self.state.settings.server.public_ip {
                         Some(ip) => target_ip == ip,
                         None => target_ip == "127.0.0.1" || target_ip == "localhost",
                     };
-    
+
                     if is_on_this_worker {
-                         return Ok(("127.0.0.1".to_string(), port, owner_id));
+                        return Ok(("127.0.0.1".to_string(), port, owner_id));
                     }
                     return Ok((target_ip.clone(), port, owner_id));
                 }
             }
-    
+
             // Legacy
             let project_id = host.replace(".zexio.internal", "");
             let port = 8000 + (crc32fast::hash(project_id.as_bytes()) % 1000) as u16;
             return Ok(("127.0.0.1".to_string(), port, "".to_string()));
-         }
-    
-         if host.ends_with(".zexio.app") {
+        }
+
+        if host.ends_with(".zexio.app") {
             let prefix = host.replace(".zexio.app", "");
             let project_id = if let Some(uuid) = prefix.split("--").last() {
-                uuid.to_string() 
+                uuid.to_string()
             } else {
                 prefix
             };
             let port = 8000 + (crc32fast::hash(project_id.as_bytes()) % 1000) as u16;
             return Ok(("127.0.0.1".to_string(), port, "".to_string()));
-         }
-         Err(())
+        }
+        Err(())
     }
 }

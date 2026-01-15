@@ -1,21 +1,20 @@
 mod config;
 mod crypto;
-mod storage;
 mod deploy;
-mod project;
-mod services;
-mod tunnel;
-mod monitor;
-mod streams;
 mod errors;
-mod middleware;
 mod mesh;
-mod server;
-mod state;
+mod middleware;
+mod monitor;
+mod project;
 mod registration;
+mod server;
+mod services;
+mod state;
+mod storage;
+mod streams;
+mod tunnel;
 
-
-use tracing::{info, error};
+use tracing::{error, info};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -36,7 +35,10 @@ async fn main() -> anyhow::Result<()> {
     let settings = config::Settings::new()?;
 
     info!("🔧 Configuration loaded");
-    info!("   Management API: http://{}:{}", settings.server.host, settings.server.port);
+    info!(
+        "   Management API: http://{}:{}",
+        settings.server.host, settings.server.port
+    );
     info!("   Mesh Proxy: port {}", settings.server.mesh_port);
 
     // Handle Commands

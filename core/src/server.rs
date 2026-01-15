@@ -1,14 +1,15 @@
+use crate::{
+    config::Settings, deploy, middleware, monitor, project, services, state::AppState, streams,
+};
+use axum::middleware as axum_middleware;
 use axum::{
-    routing::{get, post, delete},
+    routing::{delete, get, post},
     Router,
 };
-use tower_http::cors::{CorsLayer, Any};
-use crate::{state::AppState, config::Settings, project, deploy, services, monitor, middleware, streams};
 use std::net::SocketAddr;
 use tokio::net::TcpListener;
+use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
-use axum::middleware as axum_middleware;
-
 
 pub async fn start(settings: Settings) -> anyhow::Result<()> {
     // Application state
@@ -18,55 +19,77 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
 
     // Protected routes (require authentication in cloud mode, open in standalone)
     let protected_routes = Router::new()
-        .route("/projects", 
-            post(project::create_project)
-            .get(project::list_projects_handler)
+        .route(
+            "/projects",
+            post(project::create_project).get(project::list_projects_handler),
         )
         .route("/projects/:id", delete(project::delete_project_handler))
         .route("/projects/:id/env", post(project::update_env_handler))
-        .route("/projects/:id/domains", post(project::add_domain_handler).delete(project::remove_domain_handler))
+        .route(
+            "/projects/:id/domains",
+            post(project::add_domain_handler).delete(project::remove_domain_handler),
+        )
         .route("/projects/:id/files", get(project::list_files_handler))
         .route("/projects/:id/stats", get(monitor::project_monitor_handler))
-        .route("/projects/:id/stats/stream", get(monitor::project_monitor_stream))  // SSE!
-        .route("/projects/:id/logs", get(streams::project_logs_handler))  // JSON (one-time)
-        .route("/projects/:id/logs/stream", get(streams::project_logs_stream))  // SSE!
+        .route(
+            "/projects/:id/stats/stream",
+            get(monitor::project_monitor_stream),
+        ) // SSE!
+        .route("/projects/:id/logs", get(streams::project_logs_handler)) // JSON (one-time)
+        .route(
+            "/projects/:id/logs/stream",
+            get(streams::project_logs_stream),
+        ) // SSE!
         .route("/projects/:id/deploy", post(deploy::project_deploy_handler))
-        .route("/projects/:id/webhook", post(deploy::project_deploy_handler))
+        .route(
+            "/projects/:id/webhook",
+            post(deploy::project_deploy_handler),
+        )
         .route("/services/install", post(services::install_service_handler))
-        .route("/services/uninstall", post(services::uninstall_service_handler))
-        .route("/firewall/configure", post(monitor::configure_firewall_handler))
+        .route(
+            "/services/uninstall",
+            post(services::uninstall_service_handler),
+        )
+        .route(
+            "/firewall/configure",
+            post(monitor::configure_firewall_handler),
+        )
         .route("/sync", post(monitor::sync_handler))
         .layer(axum_middleware::from_fn_with_state(
             state.clone(),
-            middleware::smart_auth_middleware  // Changed from worker_auth_middleware
+            middleware::smart_auth_middleware, // Changed from worker_auth_middleware
         ));
 
     // Public routes (no auth required - for standalone mode and GUI)
     let public_routes = Router::new()
         .route("/health", get(|| async { "OK" }))
         .route("/stats", get(monitor::global_stats_handler))
-        .route("/stats/stream", get(monitor::global_stats_stream))  // SSE!
-        .route("/system/logs", get(streams::worker_logs_handler))   // JSON (one-time)
-        .route("/system/logs/stream", get(streams::worker_logs_stream))  // SSE!
-        .route("/tunnel/start", post(crate::tunnel::start_tunnel_handler))  // Moved to public
-        .route("/tunnel/stop", post(crate::tunnel::stop_tunnel_handler));   // Moved to public
+        .route("/stats/stream", get(monitor::global_stats_stream)) // SSE!
+        .route("/system/logs", get(streams::worker_logs_handler)) // JSON (one-time)
+        .route("/system/logs/stream", get(streams::worker_logs_stream)) // SSE!
+        .route("/tunnel/start", post(crate::tunnel::start_tunnel_handler)) // Moved to public
+        .route("/tunnel/stop", post(crate::tunnel::stop_tunnel_handler)); // Moved to public
 
     // CORS configuration for GUI access
     let cors = CorsLayer::new()
-        .allow_origin(Any)  // Allow all origins (Tauri apps)
-        .allow_methods(Any)  // Allow all HTTP methods
+        .allow_origin(Any) // Allow all origins (Tauri apps)
+        .allow_methods(Any) // Allow all HTTP methods
         .allow_headers(Any); // Allow all headers
 
     // Combine routes with CORS
     let app = public_routes
         .merge(protected_routes)
-        .layer(cors)  // Add CORS layer
+        .layer(cors) // Add CORS layer
         .with_state(state.clone());
 
-    let mgmt_addr: SocketAddr = format!("{}:{}", settings.server.host, settings.server.port).parse()?;
-    
+    let mgmt_addr: SocketAddr =
+        format!("{}:{}", settings.server.host, settings.server.port).parse()?;
+
     info!("🌐 Management API listening on http://{}", mgmt_addr);
-    info!("🔀 Service Mesh Proxy (Pingora) on port {}", settings.server.mesh_port);
+    info!(
+        "🔀 Service Mesh Proxy (Pingora) on port {}",
+        settings.server.mesh_port
+    );
     info!("");
     info!("📡 Available endpoints:");
     info!("   GET  /health              - Health check");
@@ -88,30 +111,28 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
     });
 
     // 2. Run Pingora (Mesh Proxy)
-    // Pingora manages its own runtime/threads, so we run it in a blocking task 
+    // Pingora manages its own runtime/threads, so we run it in a blocking task
     // to avoid blocking the Tokio executor of the main thread (although main is effectively waiting here).
     let mesh_port = settings.server.mesh_port;
     let state_clone = state.clone();
 
     tokio::task::spawn_blocking(move || {
-        use pingora::server::Server;
-        use pingora::proxy::http_proxy_service;
-        use pingora::services::Service;
         use crate::mesh::zexio_mesh::ZexioMeshLogic;
+        use pingora::proxy::http_proxy_service;
+        use pingora::server::Server;
+        use pingora::services::Service;
 
         let mut server = Server::new(None).expect("Failed to initialize Pingora server");
         server.bootstrap();
 
-        let mut proxy = http_proxy_service(
-            &server.configuration,
-            ZexioMeshLogic { state: state_clone }
-        );
+        let mut proxy =
+            http_proxy_service(&server.configuration, ZexioMeshLogic { state: state_clone });
         proxy.add_tcp(&format!("0.0.0.0:{}", mesh_port));
 
         server.add_service(proxy);
         server.run_forever();
-    }).await?;
+    })
+    .await?;
 
     Ok(())
 }
-
