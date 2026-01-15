@@ -25,14 +25,7 @@ function App() {
   return (
     <div className="h-screen bg-zinc-950 text-white flex flex-col">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-        <div className="flex items-center gap-3">
-          <img src="/logo.png" alt="Zexio" className="w-8 h-8" />
-          <div>
-            <h1 className="font-bold text-lg">ZEXIO</h1>
-            <p className="text-xs text-zinc-500">Agent</p>
-          </div>
-        </div>
+      <div className="flex items-center justify-end px-6 py-4 border-b border-zinc-800">
         <button
           onClick={() => setShowSettings(!showSettings)}
           className="p-2 hover:bg-zinc-800 rounded-lg transition-colors"
@@ -45,11 +38,17 @@ function App() {
       <div className="flex-1 flex flex-col items-center justify-center px-6">
         {!showSettings ? (
           <>
-            {/* Logo/Brand */}
+            {/* Logo */}
+            <div className="mb-8">
+              <img src="/logo.png" alt="Zexio" className="w-24 h-24 mx-auto mb-4" />
+            </div>
+
+            {/* Brand */}
             <div className="mb-12">
-              <h2 className="text-6xl font-bold text-center mb-2 bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
+              <h2 className="text-5xl font-bold text-center mb-2 bg-gradient-to-r from-blue-500 to-cyan-500 bg-clip-text text-transparent">
                 ZEXIO
               </h2>
+              <p className="text-center text-sm text-zinc-500">Agent</p>
             </div>
 
             {/* Toggle Switch */}
@@ -58,8 +57,8 @@ function App() {
               className="mb-8 relative"
             >
               <div className={`w-64 h-32 rounded-full transition-all duration-300 ${tunnelActive
-                  ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
-                  : 'bg-zinc-800'
+                ? 'bg-gradient-to-r from-blue-500 to-cyan-500'
+                : 'bg-zinc-800'
                 }`}>
                 <div className={`absolute top-2 w-28 h-28 bg-white rounded-full transition-all duration-300 ${tunnelActive ? 'right-2' : 'left-2'
                   }`} />
