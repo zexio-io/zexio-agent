@@ -4,6 +4,7 @@ mod storage;
 mod deploy;
 mod project;
 mod services;
+mod tunnel;
 mod monitor;
 mod streams;
 mod errors;
