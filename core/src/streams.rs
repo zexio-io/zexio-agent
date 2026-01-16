@@ -96,7 +96,7 @@ pub async fn stream_journal_logs(
             Err(_) => return, // End stream if spawn fails
         };
 
-        let stdout = child.stdout.take().unwrap();
+        let stdout = child.stdout.take().expect("Failed to capture stdout");
         let reader = BufReader::new(stdout);
         let mut lines = LinesStream::new(reader.lines());
 

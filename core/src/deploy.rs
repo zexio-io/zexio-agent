@@ -55,7 +55,7 @@ pub async fn project_deploy_handler(
                 "artifact_{}.zip",
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
+                    .unwrap_or_default()
                     .as_secs()
             )
         } else {
