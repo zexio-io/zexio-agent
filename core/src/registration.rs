@@ -206,3 +206,112 @@ pub async fn unregister(settings: &Settings) -> anyhow::Result<()> {
 
     Ok(())
 }
+
+pub async fn interactive_login(settings: &Settings) -> anyhow::Result<()> {
+    let identity_path = &settings.secrets.identity_path;
+
+    // Check if already logged in
+    if Path::new(identity_path).exists() {
+        info!("⚠️  You are already authenticated.");
+        info!("   Identity: {}", identity_path);
+        
+        // Ask if user wants to re-authenticate
+        println!("\n🔄 Do you want to re-authenticate? (y/N): ");
+        let mut input = String::new();
+        std::io::stdin().read_line(&mut input)?;
+        
+        if !input.trim().eq_ignore_ascii_case("y") {
+            info!("✅ Keeping existing identity.");
+            return Ok(());
+        }
+        
+        // Remove old identity
+        fs::remove_file(identity_path)?;
+        info!("🗑️  Old identity removed.");
+    }
+
+    // Prompt for provisioning token
+    println!("\n📋 Enter your provisioning token (from Zexio Dashboard):");
+    println!("   Format: zxp_...");
+    print!("   Token: ");
+    std::io::Write::flush(&mut std::io::stdout())?;
+    
+    let mut token = String::new();
+    std::io::stdin().read_line(&mut token)?;
+    let token = token.trim().to_string();
+
+    if token.is_empty() {
+        return Err(anyhow::anyhow!("Token cannot be empty"));
+    }
+
+    if !token.starts_with("zxp_") {
+        return Err(anyhow::anyhow!(
+            "Invalid token format. Expected: zxp_..."
+        ));
+    }
+
+    info!("🔐 Authenticating with Zexio Cloud...");
+
+    // Gather System Info
+    let hostname = hostname::get()?.to_string_lossy().to_string();
+    let os = sysinfo::System::name().unwrap_or("unknown".to_string());
+    let arch = sysinfo::System::cpu_arch().unwrap_or("unknown".to_string());
+
+    let client = reqwest::Client::new();
+    let dto = RegisterDto {
+        token: token.clone(),
+        worker_id: settings.cloud.worker_id.clone(),
+        hostname,
+        os,
+        arch,
+    };
+
+    // Send Registration Request
+    let api_url = format!("{}/workers/register", settings.cloud.api_url);
+
+    let res = client
+        .post(api_url)
+        .header("X-Zexio-Token", &dto.token)
+        .json(&dto)
+        .send()
+        .await?;
+
+    if !res.status().is_success() {
+        let err_text = res.text().await?;
+        error!("❌ Authentication failed: {}", err_text);
+        return Err(anyhow::anyhow!("Authentication failed: {}", err_text));
+    }
+
+    let res_text = res.text().await?;
+    if settings.debug {
+        info!("DEBUG: Registration response: {}", res_text);
+    }
+    let response: RegisterResponse = serde_json::from_str(&res_text)?;
+
+    // Save Identity
+    let identity = Identity {
+        worker_id: response.data.worker_id.clone(),
+        secret_key: response.data.secret_key,
+    };
+
+    let identity_json = serde_json::to_string_pretty(&identity)?;
+    fs::write(identity_path, identity_json)?;
+
+    // Secure the file (Unix only)
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(identity_path)?.permissions();
+        perms.set_mode(0o600);
+        fs::set_permissions(identity_path, perms)?;
+    }
+
+    info!("✅ Authentication successful!");
+    info!("   Worker ID: {}", identity.worker_id);
+    info!("   Identity saved: {}", identity_path);
+    info!("");
+    info!("💡 You can now run: zexio up <port>");
+
+    Ok(())
+}
+

@@ -32,6 +32,8 @@ enum Commands {
         /// Local port to expose (e.g., 3000)
         port: u16,
     },
+    /// Authenticate with Zexio Cloud
+    Login,
     /// Unregister this agent from Zexio Cloud
     Unregister,
 }
@@ -63,6 +65,11 @@ async fn main() -> anyhow::Result<()> {
 
     // Handle Commands
     match cli.command {
+        Some(Commands::Login) => {
+            info!("🔐 Authenticating with Zexio Cloud...");
+            registration::interactive_login(&settings).await?;
+            return Ok(());
+        }
         Some(Commands::Unregister) => {
             info!("🔓 Unregistering from Zexio Cloud...");
             registration::unregister(&settings).await?;

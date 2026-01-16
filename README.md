@@ -21,6 +21,9 @@ curl -sL https://get.zexio.com/agent | bash
 ### Basic Usage
 
 ```bash
+# Authenticate with Zexio Cloud
+zexio login
+
 # Start a tunnel to expose local port 3000
 zexio up 3000
 
@@ -35,6 +38,27 @@ zexio --help
 ```
 
 ## 📚 CLI Commands
+
+### `zexio login`
+Authenticate with Zexio Cloud using a provisioning token.
+
+**Example:**
+```bash
+$ zexio login
+📋 Enter your provisioning token (from Zexio Dashboard):
+   Format: zxp_...
+   Token: zxp_abc123...
+✅ Authentication successful!
+   Worker ID: worker_xyz
+💡 You can now run: zexio up <port>
+```
+
+**What happens:**
+1. Prompts for provisioning token from Dashboard
+2. Validates token format (`zxp_...`)
+3. Registers with Zexio Cloud API
+4. Saves identity to `~/.zexio/identity.json`
+5. Secures file with `0600` permissions (Unix)
 
 ### `zexio up <PORT>`
 Start a secure tunnel to expose a local port to the internet.
