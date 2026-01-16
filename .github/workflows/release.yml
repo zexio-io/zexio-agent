@@ -161,8 +161,11 @@ jobs:
           # Copy and rename to expected sidecar format: zexio_agent-<target-triple><.exe>
           cp "cli-artifact/zexio-cli-${{ matrix.name }}$EXT" "gui/src-tauri/binaries/zexio_agent-${{ matrix.target }}$EXT"
           
-          echo "Sidecar prepared:"
-          ls -R gui/src-tauri/binaries
+          echo "Run chmod +x on binaries (linux/mac)"
+          chmod +x gui/src-tauri/binaries/* || true
+          
+          echo "Sidecar prepared in gui/src-tauri/binaries:"
+          ls -la gui/src-tauri/binaries
 
       - name: Install Frontend Deps
         working-directory: gui
