@@ -66,7 +66,7 @@ fn print_banner() {
     println!("  ____           _         ");
     println!(" |_  / ___ __ _(_) ___    ");
     println!("  / / / -_) _` / / _ \\   ");
-    println!(" /___\\___/_,_/_|_\\___/   Agent v0.2.0");
+    println!(" /___\\___/_,_/_|_\\___/   Agent v0.3.0");
     println!("{}", "=".repeat(60));
     println!("  Deploy Anything. Anywhere. Securely.");
     println!("{}\n", "=".repeat(60));

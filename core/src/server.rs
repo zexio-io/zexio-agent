@@ -116,7 +116,9 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
                 if let Ok(identity) = serde_json::from_str::<serde_json::Value>(&identity_json) {
                     if let Some(worker_id) = identity["worker_id"].as_str() {
                         use crate::mesh::tunnel::start_tunnel_client;
-                        if let Err(e) = start_tunnel_client(settings_tunnel, worker_id.to_string()).await {
+                        if let Err(e) =
+                            start_tunnel_client(settings_tunnel, worker_id.to_string()).await
+                        {
                             tracing::error!("Zexio Tunnel failed: {}", e);
                         }
                     }

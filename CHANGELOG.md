@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Native gRPC Tunnel**: Integrated high-performance gRPC tunnel client (Tonic) directly into the main Agent binary.
 - **Hybrid Architecture**: Unified Management API (Axum) and Tunnel Client (gRPC) into a single process.
 - **Protocol Parity**: Implemented `node_sync.proto` v1 for seamless synchronization with Zexio Relay.
+- **E2E Testing**: Added automated `run_e2e.sh` integration test suite with robust process cleanup and port conflict resolution.
+
+### 🐛 Bug Fixes
+- **Protocol Deadlock**: Fixed tunnel session registration issue by ensuring initial `TunnelPacket` is sent upon connection.
+- **Port Management**: Resolved "Address already in use" errors during testing by implementing aggressive zombie process cleanup.
+- **Computation**: Fixed variable naming regression in `tunnel.rs`.
 
 ### 🛠️ Changes
 - **Dependencies**: Added `tonic`, `prost`, `pingora`, and `async-stream` to core dependencies.

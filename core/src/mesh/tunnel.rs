@@ -1,35 +1,46 @@
-use crate::mesh::node_sync::{node_sync_service_client::NodeSyncServiceClient, TunnelPacket, NodeConnectionRequest, NodeStatsRequest};
 use crate::config::Settings;
+use crate::mesh::node_sync::{
+    node_sync_service_client::NodeSyncServiceClient, NodeConnectionRequest, NodeStatsRequest,
+    TunnelPacket,
+};
+use std::collections::HashMap;
+use std::sync::Arc;
+use std::time::Duration;
+use sysinfo::System;
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
+use tokio::net::TcpStream;
 use tokio::sync::mpsc;
+use tokio::sync::Mutex;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::StreamExt;
 use tonic::transport::Channel;
 use tonic::Request;
-use tracing::{info, error, debug, warn};
-use tokio::net::TcpStream;
-use tokio::io::{AsyncReadExt, AsyncWriteExt};
-use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::Mutex;
-use std::time::Duration;
-use sysinfo::System;
+use tracing::{debug, error, info, warn};
 
 pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow::Result<()> {
     // 1. Determine Relay URL
     // Priority: Env Var > Settings > Default
-    let relay_url = std::env::var("RELAY_URL")
-        .unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
-    
-    info!("🔗 Connecting to Zexio Relay at {} (Node ID: {})...", relay_url, node_id);
-    
+    let relay_url =
+        std::env::var("RELAY_URL").unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
+
+    info!(
+        "🔗 Connecting to Zexio Relay at {} (Node ID: {})...",
+        relay_url, node_id
+    );
+
     // 2. Connect
     // Retry loop for initial connection could be added here, but for now strict fail is fine
-    let mut client = NodeSyncServiceClient::connect(relay_url.clone()).await
+    let mut client = NodeSyncServiceClient::connect(relay_url.clone())
+        .await
         .map_err(|e| anyhow::anyhow!("Failed to connect to relay: {}", e))?;
 
     // 3. Handshake (Authentication)
     // We use the worker_secret from settings or a placeholder
-    let auth_token = settings.secrets.worker_secret.clone().unwrap_or_else(|| "dev-token".to_string());
+    let auth_token = settings
+        .secrets
+        .worker_secret
+        .clone()
+        .unwrap_or_else(|| "dev-token".to_string());
     let sys = System::new_all();
     let os_info = System::long_os_version().unwrap_or("Unknown OS".into());
 
@@ -69,27 +80,42 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow:
         }
     });
 
-    // 5. Open Bi-directional Tunnel
-    let (tx, rx) = mpsc::channel::<TunnelPacket>(128);
+    // 4. Create Channel for Outbound Messages (Agent -> Relay)
+    let (tx, rx) = mpsc::channel(32);
     let outbound_stream = ReceiverStream::new(rx);
 
+    // Send Initial Packet to Register Tunnel
+    let init_packet = TunnelPacket {
+        node_id: node_id.clone(),
+        request_id: "".to_string(), // Init packet doesn't need ID
+        data: vec![],
+        is_init: true,
+        is_eof: false,
+    };
+    if let Err(e) = tx.send(init_packet).await {
+        error!("Failed to send init packet: {}", e);
+        return Err(anyhow::anyhow!("Failed to send init packet"));
+    }
+
+    // 5. Open Bi-directional Stream
     let response = client.open_tunnel(Request::new(outbound_stream)).await?;
     let mut inbound = response.into_inner();
-    
+
     info!("🚀 Tunnel Stream Established. Forwarding to local port...");
 
     // Map to track active local TCP connections
     // Key: request_id, Value: Sender to the task handling that connection
-    let active_sessions: Arc<Mutex<HashMap<String, mpsc::Sender<Vec<u8>>>>> = Arc::new(Mutex::new(HashMap::new()));
-    
-    // Target Local Port (e.g., 3000, 8080)
-    // Assuming for now we forward to the "Service Mesh" port or a configured internal app port?
-    // ROUTES.md says port 8082 is Mesh Proxy. Let's default to forwarding to that?
-    // Or maybe the user wants to expose a specific app.
-    // For MVP/Agent mode, usually we expose the specific app port.
-    // Let's use `SERVER_PORT` setting or a specific `TUNNEL_TARGET_PORT`.
-    // Defaulting to settings.server.port (8081) or mesh port. Let's use 8081 (Management/App) for now.
-    let target_port = settings.server.port; 
+    let active_sessions: Arc<Mutex<HashMap<String, mpsc::Sender<Vec<u8>>>>> =
+        Arc::new(Mutex::new(HashMap::new()));
+
+    // Target Local Port
+    // Use TUNNEL_PORT env var, or default to 3000
+    let target_port = std::env::var("TUNNEL_PORT")
+        .ok()
+        .and_then(|p| p.parse::<u16>().ok())
+        .unwrap_or(3000);
+
+    info!("🎯 Tunnel Target: 127.0.0.1:{}", target_port);
 
     while let Some(result) = inbound.next().await {
         match result {
@@ -115,7 +141,7 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow:
 
                     tokio::spawn(async move {
                         debug!("Tunnel [{}] -> Connecting to {}", request_id_inner, target);
-                        
+
                         match TcpStream::connect(&target).await {
                             Ok(mut stream) => {
                                 // Write the initial data chunk we just got
@@ -132,30 +158,34 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow:
                                 let req_id = request_id_inner.clone();
                                 let n_id = node_id_inner.clone();
                                 let tx_grpc = tx_to_relay.clone();
-                                
+
                                 tokio::spawn(async move {
                                     let mut buf = [0u8; 8192];
                                     loop {
                                         match reader.read(&mut buf).await {
                                             Ok(0) => {
                                                 // EOF from local app
-                                                let _ = tx_grpc.send(TunnelPacket {
-                                                    node_id: n_id,
-                                                    request_id: req_id,
-                                                    data: vec![],
-                                                    is_init: false,
-                                                    is_eof: true,
-                                                }).await;
+                                                let _ = tx_grpc
+                                                    .send(TunnelPacket {
+                                                        node_id: n_id,
+                                                        request_id: req_id,
+                                                        data: vec![],
+                                                        is_init: false,
+                                                        is_eof: true,
+                                                    })
+                                                    .await;
                                                 break;
                                             }
                                             Ok(n) => {
-                                                let _ = tx_grpc.send(TunnelPacket {
-                                                    node_id: n_id.clone(),
-                                                    request_id: req_id.clone(),
-                                                    data: buf[..n].to_vec(),
-                                                    is_init: false,
-                                                    is_eof: false,
-                                                }).await;
+                                                let _ = tx_grpc
+                                                    .send(TunnelPacket {
+                                                        node_id: n_id.clone(),
+                                                        request_id: req_id.clone(),
+                                                        data: buf[..n].to_vec(),
+                                                        is_init: false,
+                                                        is_eof: false,
+                                                    })
+                                                    .await;
                                             }
                                             Err(_) => break, // Connection closed/error
                                         }
