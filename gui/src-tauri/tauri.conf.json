@@ -27,7 +27,7 @@
     "active": true,
     "targets": "all",
     "externalBin": [
-      "zexio_agent"
+      "binaries/zexio_agent"
     ],
     "icon": [
       "icons/32x32.png",
