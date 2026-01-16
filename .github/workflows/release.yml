@@ -5,6 +5,7 @@ on:
     paths:
       - 'core/src/**'
       - 'core/Cargo.toml'
+      - 'gui/**'
       - 'Cargo.toml'
       - '.github/workflows/release.yml'
     tags:
@@ -16,8 +17,8 @@ env:
   BINARY_NAME: zexio
 
 jobs:
-  build:
-    name: Build ${{ matrix.name }}
+  build-cli:
+    name: CLI ${{ matrix.name }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -28,21 +29,21 @@ jobs:
             name: linux-amd64
             use_cross: false
             extension: ""
-            packages: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev cmake clang pkg-config protobuf-compiler
+            packages: sudo apt-get update && sudo apt-get install -y protobuf-compiler
           - target: aarch64-unknown-linux-gnu
             os: ubuntu-latest
             name: linux-arm64
             use_cross: true
             extension: ""
-            packages: "" # Cross handles deps in docker
+            packages: "" 
           - target: x86_64-apple-darwin
-            os: macos-13 # Intel Mac
+            os: macos-13
             name: macos-amd64
             use_cross: false
             extension: ""
             packages: brew install protobuf
           - target: aarch64-apple-darwin
-            os: macos-latest # Apple Silicon
+            os: macos-latest
             name: macos-arm64
             use_cross: false
             extension: ""
@@ -74,7 +75,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-cli-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Build Binary (Core Only)
         uses: actions-rs/cargo@v1
@@ -86,21 +87,103 @@ jobs:
       - name: Prepare Artifact
         run: |
           mkdir -p dist
-          # Handle Windows path separator differences in shell if needed, but mkdir -p works in Git Bash/PowerShell usually.
-          # Using wildcard for extension to simplify logic
-          cp target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}${{ matrix.extension }} dist/zexio-agent-${{ matrix.name }}${{ matrix.extension }}
+          cp target/${{ matrix.target }}/release/${{ env.BINARY_NAME }}${{ matrix.extension }} dist/zexio-cli-${{ matrix.name }}${{ matrix.extension }}
         shell: bash
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: zexio-agent-${{ matrix.name }}
+          name: zexio-cli-${{ matrix.name }}
           path: dist/*
+          retention-days: 5
+
+  build-gui:
+    name: GUI ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            name: linux-amd64
+            packages: sudo apt-get update && sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev cmake clang pkg-config protobuf-compiler
+          - os: macos-13
+            name: macos-amd64 # Intel
+            packages: brew install protobuf
+          - os: macos-latest
+            name: macos-arm64 # Apple Silicon
+            packages: brew install protobuf
+          - os: windows-latest
+            name: windows-amd64
+            packages: choco install protoc
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Install System Dependencies
+        if: matrix.packages != ''
+        run: ${{ matrix.packages }}
+
+      - name: Install Frontend Deps
+        working-directory: gui
+        run: npm ci
+
+      - name: Build Tauri App
+        working-directory: gui
+        # Using built-in tauri action or direct command? Direct command gives more control.
+        # Ensure tauri-cli is available. It is in devDependencies.
+        run: npm run tauri build
+
+      - name: Collect Bundles (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          mkdir -p dist-gui
+          # Copy AppImage and Deb if they exist
+          find src-tauri/target/release/bundle -name "*.AppImage" -exec cp {} dist-gui/ \; || true
+          find src-tauri/target/release/bundle -name "*.deb" -exec cp {} dist-gui/ \; || true
+        working-directory: gui
+        shell: bash
+
+      - name: Collect Bundles (macOS)
+        if: contains(matrix.os, 'macos')
+        run: |
+          mkdir -p dist-gui
+          # Copy DMG and App
+          find src-tauri/target/release/bundle -name "*.dmg" -exec cp {} dist-gui/ \; || true
+          find src-tauri/target/release/bundle -name "*.app.tar.gz" -exec cp {} dist-gui/ \; || true
+        working-directory: gui
+        shell: bash
+
+      - name: Collect Bundles (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          mkdir -p dist-gui
+          # Copy MSI and EXE
+          find src-tauri/target/release/bundle -name "*.msi" -exec cp {} dist-gui/ \; || true
+          find src-tauri/target/release/bundle -name "*.exe" -exec cp {} dist-gui/ \; || true
+        working-directory: gui
+        shell: bash
+
+      - name: Upload GUI Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zexio-gui-${{ matrix.name }}
+          path: gui/dist-gui/*
           retention-days: 5
 
   release:
     name: Create GitHub Release
-    needs: [build]
+    needs: [build-cli, build-gui]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/')
     permissions:
