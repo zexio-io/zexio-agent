@@ -147,25 +147,22 @@ jobs:
           name: zexio-cli-${{ matrix.name }}
           path: cli-artifact
       
-      - name: Setup Sidecar
+      - name: Setup Sidecar (Linux/macOS)
+        if: runner.os != 'Windows'
         shell: bash
         run: |
           mkdir -p gui/src-tauri/binaries
-          
-          # Determine source extension
-          EXT=""
-          if [[ "${{ matrix.os }}" == "windows-latest" ]]; then
-            EXT=".exe"
-          fi
-          
-          # Copy and rename to expected sidecar format: zexio_agent-<target-triple><.exe>
-          cp "cli-artifact/zexio-cli-${{ matrix.name }}$EXT" "gui/src-tauri/binaries/zexio_agent-${{ matrix.target }}$EXT"
-          
-          echo "Run chmod +x on binaries (linux/mac)"
-          chmod +x gui/src-tauri/binaries/* || true
-          
-          echo "Sidecar prepared in gui/src-tauri/binaries:"
+          cp "cli-artifact/zexio-cli-${{ matrix.name }}" "gui/src-tauri/binaries/zexio_agent-${{ matrix.target }}"
+          chmod +x gui/src-tauri/binaries/*
           ls -la gui/src-tauri/binaries
+
+      - name: Setup Sidecar (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path gui/src-tauri/binaries
+          Copy-Item -Path "cli-artifact/zexio-cli-${{ matrix.name }}.exe" -Destination "gui/src-tauri/binaries/zexio_agent-${{ matrix.target }}.exe" -Force
+          Get-ChildItem -Recurse gui/src-tauri/binaries
 
       - name: Install Frontend Deps
         working-directory: gui
