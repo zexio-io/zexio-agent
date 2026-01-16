@@ -117,6 +117,7 @@ fn get_data_dir() -> PathBuf {
 }
 
 /// Check if running as root or has system-level access
+#[allow(unsafe_code)]
 fn is_root_or_has_system_access() -> bool {
     #[cfg(unix)]
     {

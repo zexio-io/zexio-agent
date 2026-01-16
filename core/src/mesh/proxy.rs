@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 use crate::state::AppState;
 use axum::{
     body::Body,
@@ -13,7 +14,7 @@ use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error};
 
-#![allow(dead_code)]
+
 
 #[derive(Debug, Serialize, Deserialize)]
 struct ServiceTokenClaims {

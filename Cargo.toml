@@ -4,3 +4,13 @@ members = [
     "gui/src-tauri"
 ]
 resolver = "2"
+
+[workspace.lints.rust]
+unsafe_code = "warn"
+# dead_code = "allow" # Uncomment during rapid dev if needed
+
+[workspace.lints.clippy]
+enum_glob_use = "deny"
+# pedantic = { level = "warn", priority = -1 } # Too strict for now
+# nursery = { level = "warn", priority = -1 } # Too experimental
+unwrap_used = "warn"
