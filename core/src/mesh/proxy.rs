@@ -14,8 +14,6 @@ use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, error};
 
-
-
 #[derive(Debug, Serialize, Deserialize)]
 struct ServiceTokenClaims {
     #[serde(rename = "userId")]
