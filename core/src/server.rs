@@ -106,7 +106,26 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
         }
     });
 
-    // 2. Run Pingora (Mesh Proxy)
+    // 2. Start Zexio Tunnel Client (Native gRPC)
+    let settings_tunnel = settings.clone();
+    tokio::spawn(async move {
+        // We need the worker_id from identity file
+        let identity_path = &settings_tunnel.secrets.identity_path;
+        if std::path::Path::new(identity_path).exists() {
+            if let Ok(identity_json) = std::fs::read_to_string(identity_path) {
+                if let Ok(identity) = serde_json::from_str::<serde_json::Value>(&identity_json) {
+                    if let Some(worker_id) = identity["worker_id"].as_str() {
+                        use crate::mesh::tunnel::start_tunnel_client;
+                        if let Err(e) = start_tunnel_client(settings_tunnel, worker_id.to_string()).await {
+                            tracing::error!("Zexio Tunnel failed: {}", e);
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // 3. Run Pingora (Mesh Proxy)
     // Pingora manages its own runtime/threads, so we run it in a blocking task
     // to avoid blocking the Tokio executor of the main thread (although main is effectively waiting here).
     let mesh_port = settings.server.mesh_port;

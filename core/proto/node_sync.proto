@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+package zexio.node.v1;
+
+import "google/protobuf/timestamp.proto";
+
+service NodeSyncService {
+  // Stream node statistics to the backend
+  rpc SyncStats(stream NodeStatsRequest) returns (NodeSyncResponse);
+  
+  // Reported by the node when it connects
+  rpc OnConnect(NodeConnectionRequest) returns (NodeSyncResponse);
+  
+  // Reported by the node when it disconnects gracefully
+  rpc OnDisconnect(NodeConnectionRequest) returns (NodeSyncResponse);
+
+  // Bidirectional stream for native tunneling (multiplexed data)
+  rpc OpenTunnel(stream TunnelPacket) returns (stream TunnelPacket);
+}
+
+message TunnelPacket {
+  string node_id = 1;
+  string request_id = 2; // Unique identifier for an HTTP session
+  bytes data = 3;        // Raw data (chunk)
+  bool is_init = 4;      // First packet, might contain metadata/destination info
+  bool is_eof = 5;       // End of stream for this request_id
+}
+
+message NodeStatsRequest {
+  string node_id = 1;
+  float cpu_usage = 2;
+  float memory_usage = 3;
+  float disk_usage = 4;
+  google.protobuf.Timestamp timestamp = 5;
+}
+
+message NodeConnectionRequest {
+  string node_id = 1;
+  string version = 2;
+  string os_type = 3;
+  string auth_token = 4;
+}
+
+message NodeSyncResponse {
+  bool success = 1;
+  string message = 2;
+}

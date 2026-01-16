@@ -1,0 +1,149 @@
+    Checking zexio_agent v0.3.0 (/Users/mimamghozalie/Desktop/vectis/zexio_agent/core)
+error[E0432]: unresolved import `tokio_stream::wrappers::LinesStream`
+  --> core/src/streams.rs:13:5
+   |
+13 | use tokio_stream::wrappers::LinesStream;
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `LinesStream` in `wrappers`
+   |
+note: found an item that was configured out
+  --> /Users/mimamghozalie/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/tokio-stream-0.1.18/src/wrappers.rs:58:20
+   |
+53 | / cfg_io_util! {
+54 | |     mod split;
+55 | |     pub use split::SplitStream;
+...  |
+58 | |     pub use lines::LinesStream;
+   | |                    ^^^^^^^^^^^
+59 | | }
+   | |_- the item is gated behind the `io-util` feature
+
+error[E0432]: unresolved import `async_trait`
+ --> core/src/mesh/zexio_mesh.rs:2:5
+  |
+2 | use async_trait::async_trait;
+  |     ^^^^^^^^^^^ use of unresolved module or unlinked crate `async_trait`
+  |
+  = help: if you wanted to use a crate named `async_trait`, use `cargo add async_trait` to add it to your `Cargo.toml`
+
+warning: unused import: `std::process::Command`
+ --> core/src/mesh/firewall.rs:2:5
+  |
+2 | use std::process::Command;
+  |     ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `tonic::transport::Channel`
+ --> core/src/mesh/tunnel.rs:6:5
+  |
+6 | use tonic::transport::Channel;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> core/src/mesh/zexio_mesh.rs:7:5
+  |
+7 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `pingora::services::Service`
+   --> core/src/server.rs:138:13
+    |
+138 |         use pingora::services::Service;
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+error[E0195]: lifetime parameters or bounds on method `request_filter` do not match the trait declaration
+  --> core/src/mesh/zexio_mesh.rs:42:28
+   |
+42 |     async fn request_filter(&self, session: &mut Session, ctx: &mut Self::CTX) -> Result<bool> {
+   |                            ^ lifetimes do not match method in trait
+
+error[E0195]: lifetime parameters or bounds on method `upstream_peer` do not match the trait declaration
+   --> core/src/mesh/zexio_mesh.rs:110:27
+    |
+110 |     async fn upstream_peer(
+    |                           ^ lifetimes do not match method in trait
+
+warning: use of deprecated method `redis::Client::get_async_connection`: aio::Connection is deprecated. Use client::get_multiplexed_async_connection instead.
+   --> core/src/mesh/proxy.rs:131:40
+    |
+131 |             let mut conn = state.redis.get_async_connection().await.map_err(|_| ())?;
+    |                                        ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated method `redis::Client::get_async_connection`: aio::Connection is deprecated. Use client::get_multiplexed_async_connection instead.
+   --> core/src/mesh/zexio_mesh.rs:142:22
+    |
+142 |                     .get_async_connection()
+    |                      ^^^^^^^^^^^^^^^^^^^^
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `dirs`
+  --> core/src/config.rs:62:13
+   |
+62 |             dirs::home_dir()
+   |             ^^^^ use of unresolved module or unlinked crate `dirs`
+   |
+   = help: if you wanted to use a crate named `dirs`, use `cargo add dirs` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `dirs`
+  --> core/src/config.rs:75:13
+   |
+75 |             dirs::config_dir()
+   |             ^^^^ use of unresolved module or unlinked crate `dirs`
+   |
+   = help: if you wanted to use a crate named `dirs`, use `cargo add dirs` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `dirs`
+  --> core/src/config.rs:97:13
+   |
+97 |             dirs::home_dir()
+   |             ^^^^ use of unresolved module or unlinked crate `dirs`
+   |
+   = help: if you wanted to use a crate named `dirs`, use `cargo add dirs` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `dirs`
+   --> core/src/config.rs:111:13
+    |
+111 |             dirs::data_local_dir()
+    |             ^^^^ use of unresolved module or unlinked crate `dirs`
+    |
+    = help: if you wanted to use a crate named `dirs`, use `cargo add dirs` to add it to your `Cargo.toml`
+
+error[E0433]: failed to resolve: use of unresolved module or unlinked crate `libc`
+   --> core/src/config.rs:123:18
+    |
+123 |         unsafe { libc::geteuid() == 0 }
+    |                  ^^^^ use of unresolved module or unlinked crate `libc`
+    |
+    = help: if you wanted to use a crate named `libc`, use `cargo add libc` to add it to your `Cargo.toml`
+
+warning: unused variable: `sys`
+  --> core/src/mesh/tunnel.rs:33:9
+   |
+33 |     let sys = System::new_all();
+   |         ^^^ help: if this is intentional, prefix it with an underscore: `_sys`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `total_projects`
+  --> core/src/monitor.rs:65:9
+   |
+65 |     let total_projects = match state.store.list().await {
+   |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_total_projects`
+
+warning: unused variable: `total_projects`
+   --> core/src/monitor.rs:123:17
+    |
+123 |             let total_projects = match state.store.list().await {
+    |                 ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_total_projects`
+
+warning: unused variable: `total_projects`
+   --> core/src/monitor.rs:248:9
+    |
+248 |     let total_projects = match state.store.list().await {
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_total_projects`
+
+Some errors have detailed explanations: E0195, E0432, E0433.
+For more information about an error, try `rustc --explain E0195`.
+warning: `zexio_agent` (bin "zexio") generated 10 warnings
+error: could not compile `zexio_agent` (bin "zexio") due to 9 previous errors; 10 warnings emitted

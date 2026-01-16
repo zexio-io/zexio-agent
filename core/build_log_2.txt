@@ -1,0 +1,141 @@
+    Updating crates.io index
+     Locking 3 packages to latest compatible versions
+      Adding dirs v5.0.1 (available: v6.0.0)
+      Adding dirs-sys v0.4.1
+      Adding redox_users v0.4.6
+    Checking tokio-stream v0.1.18
+    Checking tokio-test v0.4.5
+    Checking tonic v0.11.0
+    Checking pingora-core v0.6.0
+    Checking pingora-cache v0.6.0
+    Checking pingora-load-balancing v0.6.0
+    Checking pingora-proxy v0.6.0
+    Checking pingora v0.6.0
+    Checking zexio_agent v0.3.0 (/Users/mimamghozalie/Desktop/vectis/zexio_agent/core)
+warning: unused import: `std::process::Command`
+ --> core/src/mesh/firewall.rs:2:5
+  |
+2 | use std::process::Command;
+  |     ^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused import: `tonic::transport::Channel`
+ --> core/src/mesh/tunnel.rs:6:5
+  |
+6 | use tonic::transport::Channel;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: unused import: `std::sync::Arc`
+ --> core/src/mesh/zexio_mesh.rs:7:5
+  |
+7 | use std::sync::Arc;
+  |     ^^^^^^^^^^^^^^
+
+warning: unused import: `pingora::services::Service`
+   --> core/src/server.rs:138:13
+    |
+138 |         use pingora::services::Service;
+    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: use of deprecated method `redis::Client::get_async_connection`: aio::Connection is deprecated. Use client::get_multiplexed_async_connection instead.
+   --> core/src/mesh/proxy.rs:131:40
+    |
+131 |             let mut conn = state.redis.get_async_connection().await.map_err(|_| ())?;
+    |                                        ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(deprecated)]` on by default
+
+warning: use of deprecated method `redis::Client::get_async_connection`: aio::Connection is deprecated. Use client::get_multiplexed_async_connection instead.
+   --> core/src/mesh/zexio_mesh.rs:142:22
+    |
+142 |                     .get_async_connection()
+    |                      ^^^^^^^^^^^^^^^^^^^^
+
+warning: unused variable: `sys`
+  --> core/src/mesh/tunnel.rs:33:9
+   |
+33 |     let sys = System::new_all();
+   |         ^^^ help: if this is intentional, prefix it with an underscore: `_sys`
+   |
+   = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `total_projects`
+  --> core/src/monitor.rs:65:9
+   |
+65 |     let total_projects = match state.store.list().await {
+   |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_total_projects`
+
+warning: unused variable: `total_projects`
+   --> core/src/monitor.rs:123:17
+    |
+123 |             let total_projects = match state.store.list().await {
+    |                 ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_total_projects`
+
+warning: unused variable: `total_projects`
+   --> core/src/monitor.rs:248:9
+    |
+248 |     let total_projects = match state.store.list().await {
+    |         ^^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_total_projects`
+
+warning: field `start_port` is never read
+  --> core/src/config.rs:33:9
+   |
+30 | pub struct SecretsSettings {
+   |            --------------- field in this struct
+...
+33 |     pub start_port: Option<u16>, // Unused but kept for compatibility
+   |         ^^^^^^^^^^
+   |
+   = note: `SecretsSettings` has derived impls for the traits `Clone` and `Debug`, but these are intentionally ignored during dead code analysis
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: method `encrypt` is never used
+  --> core/src/crypto.rs:60:12
+   |
+16 | impl Crypto {
+   | ----------- method in this implementation
+...
+60 |     pub fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>> {
+   |            ^^^^^^^
+
+warning: struct `ServiceTokenClaims` is never constructed
+  --> core/src/mesh/proxy.rs:17:8
+   |
+17 | struct ServiceTokenClaims {
+   |        ^^^^^^^^^^^^^^^^^^
+
+warning: function `mesh_proxy_handler` is never used
+  --> core/src/mesh/proxy.rs:30:14
+   |
+30 | pub async fn mesh_proxy_handler(
+   |              ^^^^^^^^^^^^^^^^^^
+
+warning: function `resolve_mesh_dns` is never used
+   --> core/src/mesh/proxy.rs:121:10
+    |
+121 | async fn resolve_mesh_dns(state: &AppState, host: &str) -> Result<(String, u16, String), ()> {
+    |          ^^^^^^^^^^^^^^^^
+
+warning: field `target_org_id` is never read
+  --> core/src/mesh/zexio_mesh.rs:31:9
+   |
+28 | pub struct MeshContext {
+   |            ----------- field in this struct
+...
+31 |     pub target_org_id: String,
+   |         ^^^^^^^^^^^^^
+
+warning: method `exists` is never used
+   --> core/src/storage.rs:102:18
+    |
+ 21 | impl ProjectStore {
+    | ----------------- method in this implementation
+...
+102 |     pub async fn exists(&self, project_id: &str) -> bool {
+    |                  ^^^^^^
+
+warning: `zexio_agent` (bin "zexio") generated 17 warnings (run `cargo fix --bin "zexio" -p zexio_agent` to apply 8 suggestions)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 10.45s
+warning: the following packages contain code that will be rejected by a future version of Rust: redis v0.25.4
+note: to see what the problems were, use the option `--future-incompat-report`, or run `cargo report future-incompatibilities --id 2`
