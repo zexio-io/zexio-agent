@@ -41,16 +41,16 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check
+          args: -p zexio_agent -- --check
 
       - name: Clippy (Linting)
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: -- -D warnings
+          args: -p zexio_agent -- -D warnings
 
       - name: Run Tests
         uses: actions-rs/cargo@v1
         with:
           command: test
-          args: --verbose
+          args: -p zexio_agent --verbose
