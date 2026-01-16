@@ -179,8 +179,8 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           mkdir -p dist-gui
-          find src-tauri/target/release/bundle -name "*.AppImage" -exec cp {} dist-gui/ \; || true
-          find src-tauri/target/release/bundle -name "*.deb" -exec cp {} dist-gui/ \; || true
+          find src-tauri/target/${{ matrix.target }}/release/bundle -name "*.AppImage" -exec cp {} dist-gui/ \; || true
+          find src-tauri/target/${{ matrix.target }}/release/bundle -name "*.deb" -exec cp {} dist-gui/ \; || true
         working-directory: gui
         shell: bash
 
@@ -188,8 +188,8 @@ jobs:
         if: contains(matrix.os, 'macos')
         run: |
           mkdir -p dist-gui
-          find src-tauri/target/release/bundle -name "*.dmg" -exec cp {} dist-gui/ \; || true
-          find src-tauri/target/release/bundle -name "*.app.tar.gz" -exec cp {} dist-gui/ \; || true
+          find src-tauri/target/${{ matrix.target }}/release/bundle -name "*.dmg" -exec cp {} dist-gui/ \; || true
+          find src-tauri/target/${{ matrix.target }}/release/bundle -name "*.app.tar.gz" -exec cp {} dist-gui/ \; || true
         working-directory: gui
         shell: bash
 
@@ -197,8 +197,8 @@ jobs:
         if: matrix.os == 'windows-latest'
         run: |
           mkdir -p dist-gui
-          find src-tauri/target/release/bundle -name "*.msi" -exec cp {} dist-gui/ \; || true
-          find src-tauri/target/release/bundle -name "*.exe" -exec cp {} dist-gui/ \; || true
+          find src-tauri/target/${{ matrix.target }}/release/bundle -name "*.msi" -exec cp {} dist-gui/ \; || true
+          find src-tauri/target/${{ matrix.target }}/release/bundle -name "*.exe" -exec cp {} dist-gui/ \; || true
         working-directory: gui
         shell: bash
 
