@@ -1,7 +1,7 @@
 [target.aarch64-unknown-linux-gnu]
 pre-build = [
     "dpkg --add-architecture arm64",
-    "apt-get update && apt-get install -y cmake clang perl libssl-dev libglib2.0-dev pkg-config"
+    "apt-get update && apt-get install -y cmake clang perl libssl-dev libglib2.0-dev pkg-config protobuf-compiler"
 ]
 
 [target.x86_64-unknown-linux-gnu]
