@@ -59,6 +59,8 @@ prost-types = "0.12"
 
 [build-dependencies]
 tonic-build = "0.11"
+
+[target.'cfg(target_os = "linux")'.build-dependencies]
 protobuf-src = "1.1"
 
 [lints]
