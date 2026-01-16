@@ -1,52 +1,121 @@
-# Changelog
+# Zexio Agent Changelog
 
-All notable changes to the **Zexio Platform** (Agent, Backend, Infrastructure) will be documented in this file.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
-and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
-
-## [0.3.0] - 2026-01-16
+## Version 0.4.0 - January 16, 2026
 
 ### 🚀 New Features
-- **Native gRPC Tunnel**: Integrated high-performance gRPC tunnel client (Tonic) directly into the main Agent binary.
-- **Hybrid Architecture**: Unified Management API (Axum) and Tunnel Client (gRPC) into a single process.
-- **Protocol Parity**: Implemented `node_sync.proto` v1 for seamless synchronization with Zexio Relay.
-- **E2E Testing**: Added automated `run_e2e.sh` integration test suite with robust process cleanup and port conflict resolution.
-- **Enhanced Monitoring**:
-  - **Service Health**: Active TCP probing of managed services to report real-time status and latency.
-  - **Resource Stats**: Real-time CPU and Memory usage streaming.
-  - **Granular Data**: Service stats now include full domain lists for dashboard display.
+
+#### Modern CLI Interface
+- **`zexio up <port>`** - Instant tunnel to local port
+  - Replaced `TUNNEL_PORT` env var with direct CLI argument
+  - Uses `clap` for robust argument parsing
+  
+- **`zexio login`** - Interactive authentication
+  - Token prompt with validation (`zxp_...` format)
+  - Secure identity storage (`~/.zexio/identity.json`, 0600 perms)
+  - Re-authentication support
+  
+- **`zexio unregister`** - Clean cloud disconnect
+  - Removes local identity
+  - Deregisters from Zexio Cloud
+
+#### Reliability Improvements
+- **Auto-reconnect** with exponential backoff
+  - Automatically reconnects if Relay restarts
+  - Prevents connection spam with backoff delays
+
+---
+
+### 🔧 Technical Changes
+
+**Modified Files:**
+- `core/src/main.rs` - Added `clap` CLI with subcommands
+- `core/src/server.rs` - Accept optional `tunnel_port` parameter
+- `core/src/mesh/tunnel.rs` - Robust reconnection loop
+- `core/src/registration.rs` - Added `interactive_login()` function
+- `core/Cargo.toml` - Added `clap` dependency
+
+**Commits:**
+```
+570ad1c feat(cli): implement 'zexio login' with interactive token prompt
+c2ad59f feat(cli): implement 'zexio up <port>' command with clap
+778eb7c feat(core): implement robust reconnect loop with exponential backoff
+```
+
+---
+
+### 💥 Breaking Changes
+
+**CLI Interface Changed:**
+```bash
+# Old
+export TUNNEL_PORT=3000
+zexio
+
+# New
+zexio up 3000
+```
+
+**Environment Variables:**
+- `TUNNEL_PORT` - ❌ Removed (use CLI argument)
+- `ZEXIO_CLOUD__TOKEN` - ⚠️ Optional (use `zexio login` instead)
+
+---
+
+### 📦 Migration Guide
+
+```bash
+# 1. Update binary
+curl -sL https://get.zexio.com/agent | bash
+
+# 2. Login with provisioning token
+zexio login
+# Enter token: zxp_...
+
+# 3. Start tunnel
+zexio up 3000
+```
+
+---
+
+### 🔒 Security
+
+- Identity files stored with `0600` permissions (Unix)
+- Token validation before registration
+- Secure reconnection with authentication
+
+---
+
+### 📝 Usage Examples
+
+```bash
+# Login
+zexio login
+
+# Start tunnel on port 3000
+zexio up 3000
+
+# Start tunnel on port 8080
+zexio up 8080
+
+# Unregister from cloud
+zexio unregister
+```
+
+---
 
 ### 🐛 Bug Fixes
-- **Protocol Deadlock**: Fixed tunnel session registration issue by ensuring initial `TunnelPacket` is sent upon connection.
-- **Port Management**: Resolved "Address already in use" errors during testing by implementing aggressive zombie process cleanup.
-- **Computation**: Fixed variable naming regression in `tunnel.rs`.
 
-### 🛠️ Changes
-- **Dependencies**: Added `tonic`, `prost`, `pingora`, and `async-stream` to core dependencies.
-- **Refactor**: Restored legacy `src_legacy` features (GUI support, REST API) while keeping the new tunnel logic.
-- **Naming**: Renamed directory structure to `zexio_agent`.
+- Fixed tunnel reconnection loop
+- Improved error messages for authentication failures
 
-## [0.1.0] - 2026-01-14
+---
 
-### 🚀 New Features
-- **Agent Auto-Registration**: Implemented secure token-based registration flow (`curl ... | bash -s -- --token=...`).
-- **Standalone Mode**: Added support for running the agent offline/locally via `--standalone` flag.
-- **Multi-Architecture Support**: Updated CI/CD (`target.yml`) to support Linux (AMD64/ARM64), Windows, and macOS.
-- **Dynamic Configuration**: Added support for `ZEXIO_CLOUD__API_URL` and `ZEXIO_CLOUD__TOKEN` environment variables to override defaults.
-- **Backend**: Added secure `POST /workers/register` endpoint with `ProvisioningGuard`.
+### 📚 Documentation
 
-### 🛠️ Changes
-- **Rebranding**: Renamed core binary from `plane` to `zexio_agent`.
-- **Installer**: Refactored `install.sh` to handle new flags and persist identity to `/etc/zexio/`.
-- **Storage**: Clarified that the Agent uses **JSON/File System** storage (previously incorrectly documented as SQLite).
-- **Docs**: Comprehensive update to `plane/README.md` covering build, install, and config steps.
+- Updated README with CLI usage
+- Added architecture diagram
+- Created walkthrough artifacts
 
-### 🐛 Bug Fixes
-- **Backend Service**: Restored missing `registerUsingToken` method in `WorkersService` that caused compilation errors.
-- **Agent Stability**: Fixed crash when identity file was missing (now defaults to Standalone warning).
-- **CI/CD**: Fixed broken binary naming in release workflow.
+---
 
-### 🔧 Infrastructure
-- **CI/CD**: Implemented Matrix Build Strategy for cross-platform release artifacts.
-- **Cleanup**: Removed legacy documentation and roadmap files (`work_todos`, `busines_roadmap`) to declutter the repository.
+**Status:** ✅ Production Ready
