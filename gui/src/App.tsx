@@ -64,7 +64,8 @@ function App() {
   });
 
   // Cloud Data (Projects, Services, Addons) - To be fetched from Zexio Cloud
-  const [cloudStats, setCloudStats] = useState<CloudStatsData>({
+  // Cloud Data (Projects, Services, Addons) - To be fetched from Zexio Cloud
+  const [cloudStats] = useState<CloudStatsData>({
     apps: { active: 0, stopped: 0, crashed: 0 },
     services: { active: 0, stopped: 0, crashed: 0 },
     addons: { enabled: 0, installed: 0 },
