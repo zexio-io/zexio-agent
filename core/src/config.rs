@@ -30,6 +30,7 @@ pub struct StorageSettings {
 pub struct SecretsSettings {
     #[allow(dead_code)]
     pub worker_secret: Option<String>,
+    #[allow(dead_code)]
     pub start_port: Option<u16>, // Unused but kept for compatibility
     pub worker_secret_path: String,
     pub master_key_path: String,

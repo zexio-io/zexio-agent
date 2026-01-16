@@ -44,7 +44,7 @@ pub async fn project_deploy_handler(
     if let Some(url) = req.url {
         info!("Downloading artifact for {} from {}", project_id, url);
         // Try to derive filename
-        let filename = url.split('/').last().unwrap_or("artifact.zip").to_string();
+        let filename = url.split('/').next_back().unwrap_or("artifact.zip").to_string();
         // Fallback if empty or obscure
         let filename = if filename.is_empty() || !filename.contains('.') {
             format!(

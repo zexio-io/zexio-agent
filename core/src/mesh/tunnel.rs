@@ -232,7 +232,7 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow:
 
                                 // 2. Read from Relay (via channel) -> Write to Local App
                                 while let Some(data) = session_rx.recv().await {
-                                    if let Err(_) = writer.write_all(&data).await {
+                                    if (writer.write_all(&data).await).is_err() {
                                         break; // Write failed
                                     }
                                 }

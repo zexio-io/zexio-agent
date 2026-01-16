@@ -57,6 +57,7 @@ impl Crypto {
         hex::encode(key)
     }
 
+    #[allow(dead_code)]
     pub fn encrypt(&self, plaintext: &[u8]) -> Result<Vec<u8>> {
         let mut nonce_bytes = [0u8; 12];
         rand::thread_rng().fill(&mut nonce_bytes);

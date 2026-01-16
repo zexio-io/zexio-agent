@@ -99,6 +99,7 @@ impl ProjectStore {
         Ok(configs)
     }
 
+    #[allow(dead_code)]
     pub async fn exists(&self, project_id: &str) -> bool {
         self.config_path(project_id).exists()
     }

@@ -24,7 +24,7 @@ pub struct SystemStats {
 
 // JSON endpoint (one-time)
 pub async fn global_stats_handler(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> Result<Json<SystemStats>, AppError> {
     let mut sys = System::new_with_specifics(
         RefreshKind::new()
@@ -74,7 +74,7 @@ pub async fn global_stats_handler(
 
 // SSE endpoint (real-time updates every 2 seconds)
 pub async fn global_stats_stream(
-    State(state): State<AppState>,
+    State(_state): State<AppState>,
 ) -> Sse<impl Stream<Item = Result<Event, Infallible>>> {
     let stream = async_stream::stream! {
         loop {
@@ -200,7 +200,7 @@ pub struct SyncResponse {
 }
 
 // Manual sync endpoint for dashboard to trigger
-pub async fn sync_handler(State(state): State<AppState>) -> Result<Json<SyncResponse>, AppError> {
+pub async fn sync_handler(State(_state): State<AppState>) -> Result<Json<SyncResponse>, AppError> {
     // Reuse global_stats logic
     let mut sys = System::new_with_specifics(
         RefreshKind::new()

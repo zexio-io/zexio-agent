@@ -28,6 +28,7 @@ struct ServiceTokenClaims {
 pub struct MeshContext {
     pub target_host: String,
     pub target_port: u16,
+    #[allow(dead_code)]
     pub target_org_id: String,
 }
 
