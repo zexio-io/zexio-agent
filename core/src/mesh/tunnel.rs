@@ -18,7 +18,7 @@ use tokio_stream::StreamExt;
 use tonic::Request;
 use tracing::{debug, error, info, warn};
 
-pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow::Result<()> {
+pub async fn start_tunnel_client(settings: Settings, node_id: String, target_port: u16) -> anyhow::Result<()> {
     // 1. Determine Relay URL
     let relay_url =
         std::env::var("RELAY_URL").unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
@@ -148,10 +148,6 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow:
                                 info!("🚀 Tunnel Stream Established. Forwarding to local port...");
 
                                 let active_sessions: Arc<Mutex<HashMap<String, mpsc::Sender<Vec<u8>>>>> = Arc::new(Mutex::new(HashMap::new()));
-                                let target_port = std::env::var("TUNNEL_PORT")
-                                    .ok()
-                                    .and_then(|p| p.parse::<u16>().ok())
-                                    .unwrap_or(3000);
                                 info!("🎯 Tunnel Target: 127.0.0.1:{}", target_port);
 
                                 // --- Tunnel Loop ---

@@ -13,7 +13,28 @@ mod state;
 mod storage;
 mod streams;
 
+use clap::{Parser, Subcommand};
 use tracing::{error, info};
+
+/// Zexio Agent - Deploy Anything. Anywhere. Securely.
+#[derive(Parser)]
+#[command(name = "zexio")]
+#[command(version, about, long_about = None)]
+struct Cli {
+    #[command(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Start a tunnel to expose a local port to the internet
+    Up {
+        /// Local port to expose (e.g., 3000)
+        port: u16,
+    },
+    /// Unregister this agent from Zexio Cloud
+    Unregister,
+}
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -27,8 +48,8 @@ async fn main() -> anyhow::Result<()> {
     // Print startup banner
     print_banner();
 
-    // Check for CLI arguments
-    let args: Vec<String> = std::env::args().collect();
+    // Parse CLI arguments
+    let cli = Cli::parse();
 
     // Load configuration
     let settings = config::Settings::new()?;
@@ -41,22 +62,40 @@ async fn main() -> anyhow::Result<()> {
     info!("   Mesh Proxy: port {}", settings.server.mesh_port);
 
     // Handle Commands
-    if args.len() > 1 && args[1] == "unregister" {
-        info!("🔓 Unregistering from Zexio Cloud...");
-        registration::unregister(&settings).await?;
-        return Ok(());
+    match cli.command {
+        Some(Commands::Unregister) => {
+            info!("🔓 Unregistering from Zexio Cloud...");
+            registration::unregister(&settings).await?;
+            return Ok(());
+        }
+        Some(Commands::Up { port }) => {
+            // Auto-Registration Handshake
+            if let Err(e) = registration::handshake(&settings).await {
+                error!("⚠️  Handshake failed: {}", e);
+                info!("   Continuing in standalone mode...");
+            }
+
+            info!("🚀 Starting Zexio Agent with Tunnel...");
+            info!("🎯 Exposing local port {} to the internet", port);
+
+            // Start server with tunnel
+            server::start(settings, Some(port)).await?;
+        }
+        None => {
+            // No subcommand - run management API only
+            info!("🚀 Starting Zexio Agent (Management API only)...");
+            info!("💡 TIP: Use 'zexio up <port>' to start a tunnel");
+
+            // Auto-Registration Handshake
+            if let Err(e) = registration::handshake(&settings).await {
+                error!("⚠️  Handshake failed: {}", e);
+                info!("   Continuing in standalone mode...");
+            }
+
+            // Start server without tunnel
+            server::start(settings, None).await?;
+        }
     }
-
-    // Auto-Registration Handshake
-    if let Err(e) = registration::handshake(&settings).await {
-        error!("⚠️  Handshake failed: {}", e);
-        info!("   Continuing in standalone mode...");
-    }
-
-    info!("🚀 Starting Zexio Agent...");
-
-    // Start server
-    server::start(settings).await?;
 
     Ok(())
 }
