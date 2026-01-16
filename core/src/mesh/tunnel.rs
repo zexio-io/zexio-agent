@@ -1,8 +1,9 @@
 use crate::config::Settings;
 use crate::mesh::node_sync::{
     node_sync_service_client::NodeSyncServiceClient, NodeConnectionRequest, NodeStatsRequest,
-    TunnelPacket,
+    ServiceStatus, TunnelPacket,
 };
+use crate::storage::ProjectStore; // Added import
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::time::Duration;
@@ -59,18 +60,55 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow:
     info!("✅ Authenticated! Tunnel Active.");
 
     // 4. Start Heartbeat Loop
+    // 4. Start Heartbeat Loop (Health Check)
     let mut stats_client = client.clone();
     let node_id_stats = node_id.clone();
+    let settings_for_stats = settings.clone(); // Clone settings for background task
+
     tokio::spawn(async move {
+        let project_store = ProjectStore::new(settings_for_stats.storage.projects_dir);
+        let mut sys = System::new_all();
+        
         let stats_stream = async_stream::stream! {
             loop {
-                // Yield a stats update
+                // Refresh system stats
+                sys.refresh_all();
+
+                // 1. Gather Service Statuses
+                let mut service_statuses = Vec::new();
+                if let Ok(projects) = project_store.list().await {
+                    for p in projects {
+                        let port = 8000 + (crc32fast::hash(p.id.as_bytes()) % 1000) as u16;
+                        let target = format!("127.0.0.1:{}", port);
+                        
+                        let start = std::time::Instant::now();
+                        let (status, latency) = match TcpStream::connect(&target).await {
+                            Ok(_) => ("UP".to_string(), start.elapsed().as_millis() as u32),
+                            Err(_) => ("DOWN".to_string(), 0),
+                        };
+
+                        service_statuses.push(ServiceStatus {
+                            id: p.id,
+                            name: p.domains.first().cloned().unwrap_or_else(|| "unknown".to_string()),
+                            status,
+                            latency_ms: latency,
+                            domains: p.domains.clone(),
+                        });
+                    }
+                }
+
+                // Calculate Resource Usage
+                let cpu_usage = sys.global_cpu_info().cpu_usage();
+                let memory_usage = (sys.used_memory() as f32 / sys.total_memory() as f32) * 100.0;
+                
+                // 2. Yield Stats
                 yield NodeStatsRequest {
                     node_id: node_id_stats.clone(),
-                    cpu_usage: 0.0, // TODO: Hook up real stats
-                    memory_usage: 0.0,
-                    disk_usage: 0.0,
-                    timestamp: None,
+                    cpu_usage,
+                    memory_usage,
+                    disk_usage: 0.0, // Keeping 0.0 for now as disk io/usage requires specific disk monitoring
+                    timestamp: Some(std::time::SystemTime::now().into()),
+                    services: service_statuses,
                 };
                 tokio::time::sleep(Duration::from_secs(5)).await;
             }

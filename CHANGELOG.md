@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Hybrid Architecture**: Unified Management API (Axum) and Tunnel Client (gRPC) into a single process.
 - **Protocol Parity**: Implemented `node_sync.proto` v1 for seamless synchronization with Zexio Relay.
 - **E2E Testing**: Added automated `run_e2e.sh` integration test suite with robust process cleanup and port conflict resolution.
+- **Enhanced Monitoring**:
+  - **Service Health**: Active TCP probing of managed services to report real-time status and latency.
+  - **Resource Stats**: Real-time CPU and Memory usage streaming.
+  - **Granular Data**: Service stats now include full domain lists for dashboard display.
 
 ### 🐛 Bug Fixes
 - **Protocol Deadlock**: Fixed tunnel session registration issue by ensuring initial `TunnelPacket` is sent upon connection.

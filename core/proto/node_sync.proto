@@ -32,6 +32,15 @@ message NodeStatsRequest {
   float memory_usage = 3;
   float disk_usage = 4;
   google.protobuf.Timestamp timestamp = 5;
+  repeated ServiceStatus services = 6;
+}
+
+message ServiceStatus {
+  string id = 1;      // e.g. "project-123"
+  string name = 2;    // e.g. "my-app" (can be main domain or project alias)
+  string status = 3;  // "UP", "DOWN", "UNKNOWN"
+  uint32 latency_ms = 4;
+  repeated string domains = 5;
 }
 
 message NodeConnectionRequest {
