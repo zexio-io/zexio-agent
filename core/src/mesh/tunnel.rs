@@ -68,7 +68,7 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow:
     tokio::spawn(async move {
         let project_store = ProjectStore::new(settings_for_stats.storage.projects_dir);
         let mut sys = System::new_all();
-        
+
         let stats_stream = async_stream::stream! {
             loop {
                 // Refresh system stats
@@ -80,7 +80,7 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow:
                     for p in projects {
                         let port = 8000 + (crc32fast::hash(p.id.as_bytes()) % 1000) as u16;
                         let target = format!("127.0.0.1:{}", port);
-                        
+
                         let start = std::time::Instant::now();
                         let (status, latency) = match TcpStream::connect(&target).await {
                             Ok(_) => ("UP".to_string(), start.elapsed().as_millis() as u32),
@@ -100,7 +100,7 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow:
                 // Calculate Resource Usage
                 let cpu_usage = sys.global_cpu_info().cpu_usage();
                 let memory_usage = (sys.used_memory() as f32 / sys.total_memory() as f32) * 100.0;
-                
+
                 // 2. Yield Stats
                 yield NodeStatsRequest {
                     node_id: node_id_stats.clone(),
