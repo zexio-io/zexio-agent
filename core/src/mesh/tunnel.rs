@@ -14,7 +14,7 @@ use tokio::sync::mpsc;
 use tokio::sync::Mutex;
 use tokio_stream::wrappers::ReceiverStream;
 use tokio_stream::StreamExt;
-use tonic::transport::Channel;
+
 use tonic::Request;
 use tracing::{debug, error, info, warn};
 
@@ -42,7 +42,7 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String) -> anyhow:
         .worker_secret
         .clone()
         .unwrap_or_else(|| "dev-token".to_string());
-    let sys = System::new_all();
+
     let os_info = System::long_os_version().unwrap_or("Unknown OS".into());
 
     let auth_req = Request::new(NodeConnectionRequest {

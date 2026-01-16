@@ -61,12 +61,6 @@ pub async fn global_stats_handler(
         0.0
     };
 
-    // Count projects
-    let total_projects = match state.store.list().await {
-        Ok(projects) => projects.len() as u32,
-        Err(_) => 0,
-    };
-
     Ok(Json(SystemStats {
         cpu_usage,
         memory_used,
@@ -119,11 +113,7 @@ pub async fn global_stats_stream(
                 0.0
             };
 
-            // Count projects
-            let total_projects = match state.store.list().await {
-                Ok(projects) => projects.len() as u32,
-                Err(_) => 0,
-            };
+
 
             let stats = SystemStats {
                 cpu_usage,
@@ -242,12 +232,6 @@ pub async fn sync_handler(State(state): State<AppState>) -> Result<Json<SyncResp
         (disk_used as f32 / disk_total as f32) * 100.0
     } else {
         0.0
-    };
-
-    // Count projects
-    let total_projects = match state.store.list().await {
-        Ok(projects) => projects.len() as u32,
-        Err(_) => 0,
     };
 
     let stats = SystemStats {

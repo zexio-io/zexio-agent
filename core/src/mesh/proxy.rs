@@ -128,7 +128,11 @@ async fn resolve_mesh_dns(state: &AppState, host: &str) -> Result<(String, u16, 
         // If it's a namespaced service DNS (3 parts before zexio.internal)
         if parts.len() >= 4 {
             // Check Redis for global mapping
-            let mut conn = state.redis.get_async_connection().await.map_err(|_| ())?;
+            let mut conn = state
+                .redis
+                .get_multiplexed_async_connection()
+                .await
+                .map_err(|_| ())?;
             let redis_key = format!("service:{}", host);
             let service_info: std::collections::HashMap<String, String> =
                 conn.hgetall(redis_key).await.map_err(|_| ())?;

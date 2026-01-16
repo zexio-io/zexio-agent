@@ -234,15 +234,13 @@ pub async fn list_files_handler(
     let mut entries = Vec::new();
 
     if let Ok(dir) = fs::read_dir(&base_path) {
-        for entry in dir {
-            if let Ok(entry) = entry {
-                let metadata = entry.metadata().ok();
-                entries.push(FileInfo {
-                    name: entry.file_name().to_string_lossy().to_string(),
-                    size: metadata.as_ref().map(|m| m.len()).unwrap_or(0),
-                    is_dir: metadata.map(|m| m.is_dir()).unwrap_or(false),
-                });
-            }
+        for entry in dir.flatten() {
+            let metadata = entry.metadata().ok();
+            entries.push(FileInfo {
+                name: entry.file_name().to_string_lossy().to_string(),
+                size: metadata.as_ref().map(|m| m.len()).unwrap_or(0),
+                is_dir: metadata.map(|m| m.is_dir()).unwrap_or(false),
+            });
         }
     } else {
         return Ok(Json(vec![]));

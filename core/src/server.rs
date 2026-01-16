@@ -137,7 +137,6 @@ pub async fn start(settings: Settings) -> anyhow::Result<()> {
         use crate::mesh::zexio_mesh::ZexioMeshLogic;
         use pingora::proxy::http_proxy_service;
         use pingora::server::Server;
-        use pingora::services::Service;
 
         let mut server = Server::new(None).expect("Failed to initialize Pingora server");
         server.bootstrap();

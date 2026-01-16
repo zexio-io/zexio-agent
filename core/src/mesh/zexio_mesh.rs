@@ -4,7 +4,7 @@ use jsonwebtoken::{decode, Algorithm, DecodingKey, Validation};
 use pingora::prelude::*;
 use redis::AsyncCommands;
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
+
 use tracing::{debug, error, info};
 
 pub struct ZexioMeshLogic {
@@ -139,7 +139,7 @@ impl ZexioMeshLogic {
                 let mut conn = self
                     .state
                     .redis
-                    .get_async_connection()
+                    .get_multiplexed_async_connection()
                     .await
                     .map_err(|_| ())?;
                 let redis_key = format!("service:{}", host);

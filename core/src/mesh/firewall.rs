@@ -1,5 +1,5 @@
 use anyhow::Result;
-use std::process::Command;
+
 use tracing::{debug, info};
 
 pub struct FirewallManager;
