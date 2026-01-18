@@ -1,194 +1,102 @@
-# Zexio Agent
+# Zexio Edge (CLI)
 
-Zexio Agent is the workload orchestrator and secure tunnel client for the Zexio infrastructure. It runs on worker nodes to manage applications and facilitate secure tunneling.
+**Zexio Edge** is the lightweight runtime and command-line interface for the Zexio infrastructure platform. It runs on your edge servers (VPS, On-premise, Cloud) to securely connect them to the Zexio Cloud network.
 
 ## Features
-- **Instant Tunneling**: Expose local ports to the internet with `zexio up <port>`
-- **Project Management**: Systemd-based application deployment and lifecycle management
-- **Zexio Mesh**: Integrated P2P networking for secure internal communication
-- **Resource Monitoring**: Real-time telemetry (CPU, Memory, Network)
-- **Auto-Update**: Self-updating binary mechanism
+- **Secure Tunneling**: Zero-config ingress to expose local services to the internet (`zexio up`).
+- **Edge Deployment**: Orchestrate applications via Zexio Dashboard.
+- **Service Management**: Built-in systemd/launchd manager for robust background operation.
+- **Auto-Healing**: Automatic reconnection and state recovery.
+- **Real-time Metrics**: CPU, Memory, and Network telemetry.
 
-## 🚀 Quick Start
+## 🚀 Quick Start (Linux/Server)
 
-### Installation
+For headless servers, use the `connect` command for a non-interactive setup.
 
 ```bash
-# macOS / Linux
-curl -sL https://get.zexio.com/agent | bash
+# 1. Install Zexio Edge
+curl -sL https://get.zexio.com | bash
+
+# 2. Connect your node
+# (Get your token from the Zexio Dashboard -> Add Node)
+zexio connect zxp_YOUR_SECURE_TOKEN --install-service
+
+# That's it! Your node is now online and managed by Zexio.
 ```
 
-### Basic Usage
+## 💻 Quick Start (Developer/Desktop)
+
+For temporary tunnels or development testing on your local machine.
 
 ```bash
-# Authenticate with Zexio Cloud
+# 1. Authenticate (Interactive)
 zexio login
 
-# Start a tunnel to expose local port 3000
+# 2. Start a tunnel
 zexio up 3000
-
-# Run management API only (no tunnel)
-zexio
-
-# Unregister from Zexio Cloud
-zexio unregister
-
-# Show help
-zexio --help
 ```
 
 ## 📚 CLI Commands
 
-### `zexio login`
-Authenticate with Zexio Cloud using a provisioning token.
+### Core
+| Command | Description |
+|---------|-------------|
+| `zexio connect <token>` | Connect to Zexio Cloud & register node (Headless/Server). |
+| `zexio login` | Interactive login (Desktop). |
+| `zexio logout` | Remove identity and credentials. |
 
-**Example:**
-```bash
-$ zexio login
-📋 Enter your provisioning token (from Zexio Dashboard):
-   Format: zxp_...
-   Token: zxp_abc123...
-✅ Authentication successful!
-   Worker ID: worker_xyz
-💡 You can now run: zexio up <port>
-```
+### Service Management (Daemon)
+Run Zexio Edge as a background service (Systemd/Launchd/Windows Service).
 
-**What happens:**
-1. Prompts for provisioning token from Dashboard
-2. Validates token format (`zxp_...`)
-3. Registers with Zexio Cloud API
-4. Saves identity to `~/.zexio/identity.json`
-5. Secures file with `0600` permissions (Unix)
+| Command | Description |
+|---------|-------------|
+| `zexio service install` | Install the agent as a system service. |
+| `zexio service start` | Start the background service. |
+| `zexio service stop` | Stop the background service. |
+| `zexio service status` | Check service health. |
 
-### `zexio up <PORT>`
-Start a secure tunnel to expose a local port to the internet.
-
-**Example:**
-```bash
-# Expose a local web server on port 3000
-zexio up 3000
-
-# Expose a database on port 5432
-zexio up 5432
-```
-
-**What happens:**
-1. Agent connects to Zexio Relay (gRPC)
-2. Authenticates using your identity
-3. Opens a bidirectional tunnel
-4. Forwards all incoming traffic to `127.0.0.1:<PORT>`
-
-### `zexio unregister`
-Disconnect this agent from Zexio Cloud and delete local identity.
-
-**Example:**
-```bash
-zexio unregister
-```
-
-**Use cases:**
-- Switching to a different organization
-- Resetting agent configuration
-- Troubleshooting authentication issues
-
-## 📚 Libraries & Dependencies
-
-### 1. System Requirements (Runtime)
-These must be installed on the Linux VPS where Zexio Agent runs.
-*   **[Caddy](https://caddyserver.com/)**: Automatically manages SSL certificates (Let's Encrypt) and reverse proxies traffic to your apps.
-*   **[OpenSSL](https://www.openssl.org/)**: Used by the administration scripts (`init.sh`, `install.sh`) to generate secure random keys (`master.key`, `worker.secret`).
-
-### 2. Rust Crates (Built-in)
-The following libraries are compiled into the binary. You don't need to install them separately, but here is what they do:
-
-#### Core & Web
-*   **`tokio`**: The asynchronous runtime that powers the high-concurrency capability of the worker.
-*   **`axum`**: A robust, ergonomic web framework (by the Tokio team) used for the HTTP API (`/deploy`, `/projects`).
-*   **`tower-http`**: Middleware stack for `axum` (logging, tracing, cors).
-*   **`clap`**: Modern CLI argument parser with derive macros.
-
-#### Tunneling & Networking
-*   **`tonic`**: High-performance gRPC framework for Relay communication.
-*   **`prost`**: Protocol Buffers implementation for efficient serialization.
-
-#### Storage
-*   **`serde_json`**: Handles serialization of project metadata and configuration to local JSON files (`config.json`).
-*   **`tokio::fs`**: Asynchronous file system operations for safe, non-blocking I/O.
-
-#### Security & Cryptography
-*   **`aes-gcm`**: Implements Authenticated Encryption (AEAD) to securely store environment variables at rest using the `master.key`.
-*   **`hmac` & `sha2`**: Used to verify the `X-Signature` header on all incoming requests, ensuring only the Dashboard can command the worker.
-*   **`rand` & `hex`**: Utilities for safe random generation and encoding.
-
-#### Utilities
-*   **`reqwest`**: HTTP Client used to download deployment bundles (zip files) from S3/Storage URLs.
-*   **`config`**: Handles loading configuration from files (`config.yaml`) and environment variables (`PLANE__...`).
-*   **`tracing`**: Structured logging system for easier debugging and observability.
-*   **`trust-dns-resolver`**: (Planned/Partial) For verifying CNAME records before accepting new domains.
-
-## 🛠️ Building & Installation
-
-### Prerequisites
-- Rust (latest stable)
-- OpenSSL (libssl-dev)
-- Build Essentials (gcc, make)
-
-### Build from Source
-```bash
-cargo build --release
-# Binary will be at: target/release/zexio
-```
+### Diagnostic & Utils
+| Command | Description |
+|---------|-------------|
+| `zexio up <port>` | Start an ad-hoc tunnel to a local port. |
+| `zexio doctor` | Check network connectivity, DNS, and permissions. |
+| `zexio info` | Display Node ID, Region, and Specs. |
+| `zexio update` | Update to the latest version. |
+| `zexio version` | Show version info. |
 
 ## ⚙️ Configuration
 
-The agent is configured via `config.yaml` or Environment Variables.
+Zexio Edge is designed to be **Zero-Config**. Most settings are managed via the Cloud Dashboard.
+However, for advanced networking, you can use Environment Variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `SERVER_PORT` | Port for Management API | `8081` |
-| `MESH_PORT` | Port for Service Proxy | `8082` |
-| `RELAY_URL` | Zexio Relay Endpoint | `http://127.0.0.1:50051` |
-| `ZEXIO_CLOUD__API_URL` | Zexio Cloud API Endpoint | `https://api.zexio.io` |
-| `ZEXIO_CLOUD__TOKEN` | Provisioning Token | `None` |
-
-### Manual Configuration
-You can manually run the agent without the installer script by providing the token via environment variable:
-
-```bash
-export ZEXIO_CLOUD__TOKEN="zxp_YOUR_TOKEN"
-export RELAY_URL="https://relay.zexio.io:50051"
-
-zexio up 3000
-```
-
-## 🔒 Security
-
-- **End-to-End Encryption**: All tunnel traffic is encrypted via TLS (gRPC over HTTPS)
-- **Token Authentication**: Relay verifies `auth_token` before accepting connections
-- **Identity Isolation**: Each agent has a unique `worker_id` and `secret_key`
-- **Auto-Reconnect**: Agent automatically reconnects if Relay restarts or network drops
+| `ZEXIO_RELAY` | Custom Relay Endpoint | `wss://relay.zexio.io` |
+| `ZEXIO_API` | Management API | `https://api.zexio.io` |
+| `HTTP_PROXY` | Proxy server URL | `None` |
 
 ## 📖 Architecture
 
 ```
-┌─────────────┐         gRPC/TLS          ┌──────────────┐
-│ Zexio Agent │ ◄──────────────────────► │ Zexio Relay  │
-│ (Your VPS)  │    Bidirectional Stream   │ (Cloud Edge) │
-└─────────────┘                           └──────────────┘
-       │                                          │
-       │ Forwards to                              │ Receives from
-       │ 127.0.0.1:<PORT>                         │ Internet
-       ▼                                          ▼
-┌─────────────┐                           ┌──────────────┐
-│ Your App    │                           │ Public URL   │
-│ (e.g. :3000)│                           │ (HTTPS)      │
-└─────────────┘                           └──────────────┘
+┌──────────────┐         Encrypted Tunnel         ┌──────────────┐
+│  Zexio Edge  │ ◄─────────────────────────────►  │ Zexio Cloud  │
+│ (Your Server)│        (gRPC / HTTP2)            │   (Relay)    │
+└──────────────┘                                  └──────────────┘
+       │                                                 ▲
+       ▼                                                 │
+┌──────────────┐                                  ┌──────────────┐
+│ Your Docker  │                                  │ Public Users │
+│  Containers  │                                  │  (Internet)  │
+└──────────────┘                                  └──────────────┘
 ```
 
-## 🤝 Contributing
+## 🛠️ Building from Source
 
-Contributions are welcome! Please open an issue or PR on GitHub.
+```bash
+# Requirements: Rust (Cargo), OpenSSL
+cargo build --release
+# Binary: target/release/zexio
+```
 
 ## 📄 License
-
-MIT License - see LICENSE file for details.
+Apache License 2.0 - see LICENSE file for details.
