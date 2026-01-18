@@ -15,7 +15,7 @@ For headless servers, use the `connect` command for a non-interactive setup.
 
 ```bash
 # 1. Install Zexio Edge
-curl -sL https://get.zexio.com | bash
+curl -sL https://get.zexio.io/edge | bash
 
 # 2. Connect your node
 # (Get your token from the Zexio Dashboard -> Add Node)
@@ -71,8 +71,9 @@ However, for advanced networking, you can use Environment Variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ZEXIO_RELAY` | Custom Relay Endpoint | `wss://relay.zexio.io` |
-| `ZEXIO_API` | Management API | `https://api.zexio.io` |
+| `ZEXIO_RELAY_URL` | Custom Relay Endpoint | `wss://relay.zexio.io:443` |
+| `ZEXIO_API_URL` | Management API | `https://api.zexio.io` |
+| `ZEXIO_TOKEN` | Provisioning Token (Headless) | `None` |
 | `HTTP_PROXY` | Proxy server URL | `None` |
 
 ## 📖 Architecture
