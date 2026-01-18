@@ -56,7 +56,7 @@ export function CloudAuthForm({ onSubmit, onBack }: CloudAuthFormProps) {
                         required
                     />
                     <p className="text-xs text-muted-foreground mt-1">
-                        Unique identifier for this edge or managed node
+                        Unique identifier for this agent or managed node
                     </p>
                 </div>
 

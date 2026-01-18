@@ -1,3 +1,4 @@
+mod daemon;
 mod config;
 mod crypto;
 mod deploy;
@@ -34,34 +35,78 @@ enum Commands {
     },
     /// Authenticate with Zexio Cloud
     Login,
+    /// Connect to Zexio Cloud using a provisioning token
+    Connect {
+        /// Provisioning token from the dashboard
+        token: String,
+        /// Automatically install as a system service
+        #[arg(long)]
+        install_service: bool,
+    },
     /// Unregister this agent from Zexio Cloud
     Unregister,
+    /// Install a software package (e.g., docker, redis, postgres)
+    Install {
+        /// Name of the package to install
+        package: String,
+        /// Optional: Exact shell command/script to execute
+        #[arg(long)]
+        command: Option<String>,
+    },
+    /// Uninstall a software package
+    Uninstall {
+        /// Name of the package to uninstall
+        package: String,
+        /// Optional: Exact shell command/script to execute
+        #[arg(long)]
+        command: Option<String>,
+    },
+    /// Manage Zexio Agent as a system service (daemon)
+    Service {
+        #[command(subcommand)]
+        action: ServiceAction,
+    },
+}
+
+#[derive(Subcommand)]
+enum ServiceAction {
+    /// Install as a system service
+    Install,
+    /// Uninstall system service
+    Uninstall,
+    /// Start background service
+    Start,
+    /// Stop background service
+    Stop,
+    /// Check service status
+    Status,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Initialize logging with better formatting
+    // 1. Load configuration first (as requested)
+    let settings = config::Settings::new()?;
+
+    // 2. Initialize logging
     tracing_subscriber::fmt()
         .with_target(false)
         .with_thread_ids(false)
         .with_level(true)
         .init();
 
-    // Print startup banner
+    // 3. Print startup banner & Debug Info
     print_banner();
 
-    // Parse CLI arguments
-    let cli = Cli::parse();
-
-    // Load configuration
-    let settings = config::Settings::new()?;
-
     info!("🔧 Configuration loaded");
+    info!("   Cloud API URL: {}", settings.cloud.api_url);
     info!(
         "   Management API: http://{}:{}",
         settings.server.host, settings.server.port
     );
     info!("   Mesh Proxy: port {}", settings.server.mesh_port);
+
+    // 4. Parse CLI arguments
+    let cli = Cli::parse();
 
     // Handle Commands
     match cli.command {
@@ -70,9 +115,65 @@ async fn main() -> anyhow::Result<()> {
             registration::interactive_login(&settings).await?;
             return Ok(());
         }
+        Some(Commands::Connect {
+            token,
+            install_service,
+        }) => {
+            info!("🔗 Connecting to Zexio Cloud with token...");
+            registration::connect_with_token(&settings, token).await?;
+
+            if install_service {
+                info!("⚙️  Automatically installing as system service...");
+                daemon::handle_service(daemon::ServiceAction::Install).await?;
+                daemon::handle_service(daemon::ServiceAction::Start).await?;
+            }
+            return Ok(());
+        }
         Some(Commands::Unregister) => {
             info!("🔓 Unregistering from Zexio Cloud...");
             registration::unregister(&settings).await?;
+            return Ok(());
+        }
+        Some(Commands::Service { action }) => {
+            let daemon_action = match action {
+                ServiceAction::Install => daemon::ServiceAction::Install,
+                ServiceAction::Uninstall => daemon::ServiceAction::Uninstall,
+                ServiceAction::Start => daemon::ServiceAction::Start,
+                ServiceAction::Stop => daemon::ServiceAction::Stop,
+                ServiceAction::Status => daemon::ServiceAction::Status,
+            };
+            daemon::handle_service(daemon_action).await?;
+            return Ok(());
+        }
+        Some(Commands::Install { package, command }) => {
+            if let Some(cmd) = command {
+                info!("🛠️  Zexio is executing specialized command for {}: {}...", package, cmd);
+                match services::run_generic_command(&cmd).await {
+                    Ok(stdout) => {
+                        info!("✅ Successfully executed for {}:", package);
+                        println!("{}", stdout);
+                    }
+                    Err(e) => error!("❌ Execution failed: {}", e),
+                }
+            } else {
+                error!("❌ Error: No command provided. Use --command '...' to specify what to run.");
+                info!("   Example: zexio install docker --command 'curl -fsSL https://get.docker.com | sudo sh'");
+            }
+            return Ok(());
+        }
+        Some(Commands::Uninstall { package, command }) => {
+            if let Some(cmd) = command {
+                info!("🗑️  Zexio is executing uninstall command for {}: {}...", package, cmd);
+                match services::run_generic_command(&cmd).await {
+                    Ok(stdout) => {
+                        info!("✅ Successfully executed uninstall for {}:", package);
+                        println!("{}", stdout);
+                    }
+                    Err(e) => error!("❌ Uninstallation failed: {}", e),
+                }
+            } else {
+                error!("❌ Error: No command provided for uninstallation. Use --command '...'");
+            }
             return Ok(());
         }
         Some(Commands::Up { port }) => {

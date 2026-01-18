@@ -18,11 +18,15 @@ use tokio_stream::StreamExt;
 use tonic::Request;
 use tracing::{debug, error, info, warn};
 
-pub async fn start_tunnel_client(settings: Settings, node_id: String, target_port: u16) -> anyhow::Result<()> {
+pub async fn start_tunnel_client(
+    settings: Settings,
+    node_id: String,
+    target_port: u16,
+) -> anyhow::Result<()> {
     // 1. Determine Relay URL
     let relay_url =
         std::env::var("RELAY_URL").unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
-    
+
     // Retry Loop
     loop {
         info!(
@@ -32,7 +36,7 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
 
         // 2. Connect
         let client_res = NodeSyncServiceClient::connect(relay_url.clone()).await;
-        
+
         match client_res {
             Ok(mut client) => {
                 // 3. Handshake (Authentication)
@@ -58,10 +62,10 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
                             // If auth fails, waiting a bit longer might be wise, or just exit if we want strictly correct auth
                             // For now, retry in 10s
                             tokio::time::sleep(Duration::from_secs(10)).await;
-                            continue; 
+                            continue;
                         }
                         info!("✅ Authenticated! Tunnel Active.");
-                        
+
                         // 4. Start Heartbeat Loop (Health Check)
                         let mut stats_client = client.clone();
                         let node_id_stats = node_id.clone();
@@ -69,7 +73,8 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
 
                         // We abort this task if we disconnect, to avoid zombie stats
                         let heartbeat_handle = tokio::spawn(async move {
-                            let project_store = ProjectStore::new(settings_for_stats.storage.projects_dir);
+                            let project_store =
+                                ProjectStore::new(settings_for_stats.storage.projects_dir);
                             let mut sys = System::new_all();
 
                             let stats_stream = async_stream::stream! {
@@ -115,11 +120,12 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
                                     tokio::time::sleep(Duration::from_secs(5)).await;
                                 }
                             };
-                            if let Err(e) = stats_client.sync_stats(Request::new(stats_stream)).await {
+                            if let Err(e) =
+                                stats_client.sync_stats(Request::new(stats_stream)).await
+                            {
                                 warn!("Heartbeat stream finished/failed: {}", e);
                             }
                         });
-
 
                         // 5. Setup Tunnel Channels
                         let (tx, rx) = mpsc::channel(32);
@@ -133,12 +139,12 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
                             is_init: true,
                             is_eof: false,
                         };
-                        
+
                         if let Err(e) = tx.send(init_packet).await {
-                             error!("Failed to send init packet, reconnecting... Error: {}", e);
-                             heartbeat_handle.abort();
-                             tokio::time::sleep(Duration::from_secs(5)).await;
-                             continue;
+                            error!("Failed to send init packet, reconnecting... Error: {}", e);
+                            heartbeat_handle.abort();
+                            tokio::time::sleep(Duration::from_secs(5)).await;
+                            continue;
                         }
 
                         // Open Bi-directional Stream
@@ -147,7 +153,9 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
                                 let mut inbound = response.into_inner();
                                 info!("🚀 Tunnel Stream Established. Forwarding to local port...");
 
-                                let active_sessions: Arc<Mutex<HashMap<String, mpsc::Sender<Vec<u8>>>>> = Arc::new(Mutex::new(HashMap::new()));
+                                let active_sessions: Arc<
+                                    Mutex<HashMap<String, mpsc::Sender<Vec<u8>>>>,
+                                > = Arc::new(Mutex::new(HashMap::new()));
                                 info!("🎯 Tunnel Target: 127.0.0.1:{}", target_port);
 
                                 // --- Tunnel Loop ---
@@ -165,7 +173,8 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
 
                                             if !sessions.contains_key(&request_id) {
                                                 // New Session
-                                                let (session_tx, mut session_rx) = mpsc::channel::<Vec<u8>>(64);
+                                                let (session_tx, mut session_rx) =
+                                                    mpsc::channel::<Vec<u8>>(64);
                                                 sessions.insert(request_id.clone(), session_tx);
 
                                                 let node_id_inner = node_id.clone();
@@ -175,16 +184,23 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
 
                                                 tokio::spawn(async move {
                                                     // (Same Local Proxy Logic)
-                                                    debug!("Tunnel [{}] -> Connecting to {}", request_id_inner, target);
+                                                    debug!(
+                                                        "Tunnel [{}] -> Connecting to {}",
+                                                        request_id_inner, target
+                                                    );
                                                     match TcpStream::connect(&target).await {
                                                         Ok(mut stream) => {
                                                             if !pkt.data.is_empty() {
-                                                                if let Err(e) = stream.write_all(&pkt.data).await {
+                                                                if let Err(e) = stream
+                                                                    .write_all(&pkt.data)
+                                                                    .await
+                                                                {
                                                                     error!("Failed to write to local app: {}", e);
                                                                     return;
                                                                 }
                                                             }
-                                                            let (mut reader, mut writer) = stream.into_split();
+                                                            let (mut reader, mut writer) =
+                                                                stream.into_split();
                                                             let req_id = request_id_inner.clone();
                                                             let n_id = node_id_inner.clone();
                                                             let tx_grpc = tx_to_relay.clone();
@@ -193,7 +209,10 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
                                                             tokio::spawn(async move {
                                                                 let mut buf = [0u8; 8192];
                                                                 loop {
-                                                                    match reader.read(&mut buf).await {
+                                                                    match reader
+                                                                        .read(&mut buf)
+                                                                        .await
+                                                                    {
                                                                         Ok(0) => {
                                                                             let _ = tx_grpc.send(TunnelPacket {
                                                                                 node_id: n_id, request_id: req_id, data: vec![], is_init: false, is_eof: true,
@@ -211,8 +230,14 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
                                                             });
 
                                                             // Writer Loop
-                                                            while let Some(data) = session_rx.recv().await {
-                                                                if (writer.write_all(&data).await).is_err() { break; }
+                                                            while let Some(data) =
+                                                                session_rx.recv().await
+                                                            {
+                                                                if (writer.write_all(&data).await)
+                                                                    .is_err()
+                                                                {
+                                                                    break;
+                                                                }
                                                             }
                                                         }
                                                         Err(e) => {
@@ -227,8 +252,11 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
                                             }
                                         }
                                         Err(e) => {
-                                            error!("❌ Tunnel Stream Error: {}. Reconnecting...", e);
-                                            break; 
+                                            error!(
+                                                "❌ Tunnel Stream Error: {}. Reconnecting...",
+                                                e
+                                            );
+                                            break;
                                         }
                                     }
                                 }
@@ -242,7 +270,7 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
                         }
                     }
                     Err(e) => {
-                          error!("❌ Failed to call on_connect: {}. Retrying...", e);
+                        error!("❌ Failed to call on_connect: {}. Retrying...", e);
                     }
                 }
             }
@@ -250,7 +278,7 @@ pub async fn start_tunnel_client(settings: Settings, node_id: String, target_por
                 error!("❌ Failed to connect to relay: {}. Retrying in 5s...", e);
             }
         }
-        
+
         // Wait before reconnecting to avoid spam
         tokio::time::sleep(Duration::from_secs(5)).await;
     }

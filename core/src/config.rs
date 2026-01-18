@@ -134,6 +134,9 @@ fn is_root_or_has_system_access() -> bool {
 
 impl Settings {
     pub fn new() -> Result<Self, ConfigError> {
+        // Load .env file if present
+        let _ = dotenvy::dotenv();
+
         let env = env::var("RUN_MODE").unwrap_or_else(|_| "production".into());
 
         // Allow simple SERVER_PORT override
@@ -151,7 +154,7 @@ impl Settings {
         let config_dir = get_config_dir();
         let data_dir = get_data_dir();
 
-        let s = Config::builder()
+        let mut builder = Config::builder()
             // Start with default values
             .set_default("server.port", port as i64)?
             .set_default("server.mesh_port", mesh_port as i64)?
@@ -194,10 +197,23 @@ impl Settings {
             .set_default("debug", false)?
             // Load config file if exists
             .add_source(config::File::with_name(&format!("config/{}", env)).required(false))
-            .add_source(
-                config::Environment::with_prefix("ZEXIO").separator("__"), // ZEXIO_CLOUD__API_URL overrides cloud.api_url
-            )
-            .build()?;
+            .add_source(config::Environment::with_prefix("ZEXIO").separator("__"));
+
+        // Manual overrides for simpler ENV names
+        if let Ok(url) = env::var("ZEXIO_API_URL") {
+            builder = builder.set_override("cloud.api_url", url)?;
+        }
+        if let Ok(url) = env::var("ZEXIO_CLOUD__API_URL") {
+            builder = builder.set_override("cloud.api_url", url)?;
+        }
+        if let Ok(token) = env::var("ZEXIO_TOKEN") {
+            builder = builder.set_override("cloud.token", token)?;
+        }
+        if let Ok(token) = env::var("ZEXIO_CLOUD__TOKEN") {
+            builder = builder.set_override("cloud.token", token)?;
+        }
+
+        let s = builder.build()?;
 
         s.try_deserialize()
     }

@@ -114,11 +114,13 @@ pub async fn start(settings: Settings, tunnel_port: Option<u16>) -> anyhow::Resu
             let identity_path = &settings_tunnel.secrets.identity_path;
             if std::path::Path::new(identity_path).exists() {
                 if let Ok(identity_json) = std::fs::read_to_string(identity_path) {
-                    if let Ok(identity) = serde_json::from_str::<serde_json::Value>(&identity_json) {
+                    if let Ok(identity) = serde_json::from_str::<serde_json::Value>(&identity_json)
+                    {
                         if let Some(worker_id) = identity["worker_id"].as_str() {
                             use crate::mesh::tunnel::start_tunnel_client;
                             if let Err(e) =
-                                start_tunnel_client(settings_tunnel, worker_id.to_string(), port).await
+                                start_tunnel_client(settings_tunnel, worker_id.to_string(), port)
+                                    .await
                             {
                                 tracing::error!("Zexio Tunnel failed: {}", e);
                             }

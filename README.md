@@ -1,10 +1,10 @@
-# Zexio Edge (CLI)
+# Zexio Agent (CLI)
 
-**Zexio Edge** is the lightweight runtime and command-line interface for the Zexio infrastructure platform. It runs on your edge servers (VPS, On-premise, Cloud) to securely connect them to the Zexio Cloud network.
+**Zexio Agent** is the lightweight runtime and command-line interface for the Zexio infrastructure platform. It runs on your edge servers (VPS, On-premise, Cloud) to securely connect them to the Zexio Cloud network.
 
 ## Features
 - **Secure Tunneling**: Zero-config ingress to expose local services to the internet (`zexio up`).
-- **Edge Deployment**: Orchestrate applications via Zexio Dashboard.
+- **Agent Deployment**: Orchestrate applications via Zexio Dashboard.
 - **Service Management**: Built-in systemd/launchd manager for robust background operation.
 - **Auto-Healing**: Automatic reconnection and state recovery.
 - **Real-time Metrics**: CPU, Memory, and Network telemetry.
@@ -14,12 +14,12 @@
 For headless servers, use the `connect` command for a non-interactive setup.
 
 ```bash
-# 1. Install Zexio Edge
-curl -sL https://get.zexio.io/edge | bash
+# 1. Install Zexio Agent
+curl -sL https://get.zexio.io/agent | bash
 
 # 2. Connect your node
-# (Get your token from the Zexio Dashboard -> Add Node)
-zexio connect zxp_YOUR_SECURE_TOKEN --install-service
+# (Get your 8-digit token from the Zexio Dashboard -> Add Node)
+zexio connect YOUR_TOKEN --install-service
 
 # That's it! Your node is now online and managed by Zexio.
 ```
@@ -46,7 +46,7 @@ zexio up 3000
 | `zexio logout` | Remove identity and credentials. |
 
 ### Service Management (Daemon)
-Run Zexio Edge as a background service (Systemd/Launchd/Windows Service).
+Run Zexio Agent as a background service (Systemd, Launchd, or Windows Service). Once started, the **Management API** and **Mesh Proxy** remain active continuously.
 
 | Command | Description |
 |---------|-------------|
@@ -54,6 +54,7 @@ Run Zexio Edge as a background service (Systemd/Launchd/Windows Service).
 | `zexio service start` | Start the background service. |
 | `zexio service stop` | Stop the background service. |
 | `zexio service status` | Check service health. |
+| `zexio service uninstall` | Stop and remove the system service. |
 
 ### Diagnostic & Utils
 | Command | Description |
@@ -66,23 +67,24 @@ Run Zexio Edge as a background service (Systemd/Launchd/Windows Service).
 
 ## ⚙️ Configuration
 
-Zexio Edge is designed to be **Zero-Config**. Most settings are managed via the Cloud Dashboard.
-However, for advanced networking, you can use Environment Variables:
+Zexio Agent is designed to be **Zero-Config**. Most settings are managed via the Cloud Dashboard.
+However, for advanced networking or self-hosted environments, you can use Environment Variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ZEXIO_API_URL` | Management API | `https://api.zexio.io` |
-| `ZEXIO_TOKEN` | Provisioning Token (Headless) | `None` |
+| `ZEXIO_CLOUD__API_URL` | Override Zexio Cloud API URL | `https://api.zexio.io` |
+| `ZEXIO_CLOUD__TOKEN` | Provisioning Token (Env Override) | `None` |
 | `HTTP_PROXY` | Proxy server URL | `None` |
+| `RUN_MODE` | configuration mode | `production` |
 
 ## 📖 Architecture
 
 ```mermaid
 graph LR
     subgraph Client [Your Infrastructure]
-        Edge[Zexio Edge Runtime]
+        Agent[Zexio Agent Runtime]
         App[Your Applications]
-        Edge -- Manage & Proxy --> App
+        Agent -- Manage & Proxy --> App
     end
 
     subgraph Cloud [Zexio Platform]
@@ -91,14 +93,14 @@ graph LR
         Dashboard[Web Dashboard]
     end
 
-    Edge -- "Encrypted Tunnel (gRPC)" --> Relay
-    Edge -- "Telemetry & Config" --> API
+    Agent -- "Encrypted Tunnel (gRPC)" --> Relay
+    Agent -- "Telemetry & Config" --> API
     
     User((Public Internet)) -- HTTPS --> Relay
-    Relay -- Proxy --> Edge
+    Relay -- Proxy --> Agent
     
     Admin((You)) -- Click Deploy --> Dashboard
-    Dashboard -- Command --> API -- Push --> Edge
+    Dashboard -- Command --> API -- Push --> Agent
 ```
 
 ## 🛠️ Building from Source
