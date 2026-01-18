@@ -245,10 +245,8 @@ pub async fn start_tunnel_client(
                                                         }
                                                     }
                                                 });
-                                            } else {
-                                                if let Some(s_tx) = sessions.get(&request_id) {
-                                                    let _ = s_tx.send(pkt.data).await;
-                                                }
+                                            } else if let Some(s_tx) = sessions.get(&request_id) {
+                                                let _ = s_tx.send(pkt.data).await;
                                             }
                                         }
                                         Err(e) => {

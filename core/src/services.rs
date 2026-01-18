@@ -26,15 +26,18 @@ pub async fn install_service_handler(
     Json(payload): Json<InstallServiceRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let service = payload.service.as_str();
-    
-    // If a command is provided in the request, use it. 
+
+    // If a command is provided in the request, use it.
     // Otherwise, we might eventually pull it from a catalog, but for now we require it or fail.
     let cmd_to_run = payload.command.clone().ok_or_else(|| {
         error!("No command provided for service installation: {}", service);
         AppError::BadRequest("No command provided".to_string())
     })?;
 
-    info!("Request to run command for service {}: {}", service, cmd_to_run);
+    info!(
+        "Request to run command for service {}: {}",
+        service, cmd_to_run
+    );
 
     match run_generic_command(&cmd_to_run).await {
         Ok(_) => {
@@ -58,8 +61,14 @@ pub async fn install_service_handler(
 pub async fn run_generic_command(cmd: &str) -> Result<String, String> {
     // Safety check: Filter out potentially destructive commands
     if is_dangerous_command(cmd) {
-        error!("🚨 BLOCKED: Potential destructive command detected: {}", cmd);
-        return Err("Command blocked: Potential system destruction detected for safety reasons.".to_string());
+        error!(
+            "🚨 BLOCKED: Potential destructive command detected: {}",
+            cmd
+        );
+        return Err(
+            "Command blocked: Potential system destruction detected for safety reasons."
+                .to_string(),
+        );
     }
 
     let output = if cfg!(target_os = "windows") {
@@ -86,7 +95,7 @@ pub async fn run_generic_command(cmd: &str) -> Result<String, String> {
 /// Simple safety filter to catch accidental or malicious system destruction
 fn is_dangerous_command(cmd: &str) -> bool {
     let cmd_lower = cmd.to_lowercase();
-    
+
     // Patterns that are highly likely to cause irreversible system damage
     // Note: This is a guardrail, not an absolute sandbox.
     let extreme_danger = [
@@ -121,10 +130,13 @@ pub async fn uninstall_service_handler(
     Json(payload): Json<UninstallServiceRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let service = payload.service.as_str();
-    
+
     // If a command is provided in the request, use it.
     let cmd_to_run = payload.command.clone().ok_or_else(|| {
-        error!("No command provided for service uninstallation: {}", service);
+        error!(
+            "No command provided for service uninstallation: {}",
+            service
+        );
         AppError::BadRequest("No command provided".to_string())
     })?;
 

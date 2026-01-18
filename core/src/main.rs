@@ -1,6 +1,6 @@
-mod daemon;
 mod config;
 mod crypto;
+mod daemon;
 mod deploy;
 mod errors;
 mod mesh;
@@ -147,7 +147,10 @@ async fn main() -> anyhow::Result<()> {
         }
         Some(Commands::Install { package, command }) => {
             if let Some(cmd) = command {
-                info!("🛠️  Zexio is executing specialized command for {}: {}...", package, cmd);
+                info!(
+                    "🛠️  Zexio is executing specialized command for {}: {}...",
+                    package, cmd
+                );
                 match services::run_generic_command(&cmd).await {
                     Ok(stdout) => {
                         info!("✅ Successfully executed for {}:", package);
@@ -156,14 +159,19 @@ async fn main() -> anyhow::Result<()> {
                     Err(e) => error!("❌ Execution failed: {}", e),
                 }
             } else {
-                error!("❌ Error: No command provided. Use --command '...' to specify what to run.");
+                error!(
+                    "❌ Error: No command provided. Use --command '...' to specify what to run."
+                );
                 info!("   Example: zexio install docker --command 'curl -fsSL https://get.docker.com | sudo sh'");
             }
             return Ok(());
         }
         Some(Commands::Uninstall { package, command }) => {
             if let Some(cmd) = command {
-                info!("🗑️  Zexio is executing uninstall command for {}: {}...", package, cmd);
+                info!(
+                    "🗑️  Zexio is executing uninstall command for {}: {}...",
+                    package, cmd
+                );
                 match services::run_generic_command(&cmd).await {
                     Ok(stdout) => {
                         info!("✅ Successfully executed uninstall for {}:", package);
