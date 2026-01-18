@@ -56,6 +56,12 @@ pub async fn install_service_handler(
 }
 
 pub async fn run_generic_command(cmd: &str) -> Result<String, String> {
+    // Safety check: Filter out potentially destructive commands
+    if is_dangerous_command(cmd) {
+        error!("🚨 BLOCKED: Potential destructive command detected: {}", cmd);
+        return Err("Command blocked: Potential system destruction detected for safety reasons.".to_string());
+    }
+
     let output = if cfg!(target_os = "windows") {
         Command::new("powershell")
             .arg("-Command")
@@ -75,6 +81,33 @@ pub async fn run_generic_command(cmd: &str) -> Result<String, String> {
     }
 
     Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+/// Simple safety filter to catch accidental or malicious system destruction
+fn is_dangerous_command(cmd: &str) -> bool {
+    let cmd_lower = cmd.to_lowercase();
+    
+    // Patterns that are highly likely to cause irreversible system damage
+    // Note: This is a guardrail, not an absolute sandbox.
+    let extreme_danger = [
+        "rm -rf / ",
+        "rm -rf /\"",
+        "rm -rf /*",
+        "rm -rf /etc",
+        "rm -rf /bin",
+        "rm -rf /boot",
+        "rm -rf /dev",
+        "rm -rf /sbin",
+        "rm -rf /usr",
+        "mkfs",
+        "dd if=/dev/",
+        "> /dev/sd",
+        "> /dev/nvme",
+        "chmod -r 777 /",
+        "chown -r 777 /",
+    ];
+
+    extreme_danger.iter().any(|&p| cmd_lower.contains(p))
 }
 
 #[derive(Deserialize)]
