@@ -71,7 +71,6 @@ However, for advanced networking, you can use Environment Variables:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `ZEXIO_RELAY_URL` | Custom Relay Endpoint | `wss://relay.zexio.io:443` |
 | `ZEXIO_API_URL` | Management API | `https://api.zexio.io` |
 | `ZEXIO_TOKEN` | Provisioning Token (Headless) | `None` |
 | `HTTP_PROXY` | Proxy server URL | `None` |
