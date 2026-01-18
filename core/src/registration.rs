@@ -241,7 +241,10 @@ pub async fn interactive_login(settings: &Settings) -> anyhow::Result<()> {
 
         info!("🗑️  Unregistering current node...");
         if let Err(e) = unregister(settings).await {
-            error!("⚠️  Failed to unregister old node from cloud: {}. Proceeding anyway...", e);
+            error!(
+                "⚠️  Failed to unregister old node from cloud: {}. Proceeding anyway...",
+                e
+            );
         }
         fs::remove_file(identity_path)?;
         info!("🗑️  Old identity removed.");
@@ -351,7 +354,10 @@ pub async fn connect_with_token(settings: &Settings, token: String) -> anyhow::R
 
         info!("🗑️  Unregistering current node...");
         if let Err(e) = unregister(settings).await {
-            error!("⚠️  Failed to unregister old node from cloud: {}. Proceeding anyway...", e);
+            error!(
+                "⚠️  Failed to unregister old node from cloud: {}. Proceeding anyway...",
+                e
+            );
         }
         let _ = fs::remove_file(identity_path);
     }
