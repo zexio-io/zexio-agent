@@ -77,17 +77,28 @@ However, for advanced networking, you can use Environment Variables:
 
 ## 📖 Architecture
 
-```
-┌──────────────┐         Encrypted Tunnel         ┌──────────────┐
-│  Zexio Edge  │ ◄─────────────────────────────►  │ Zexio Cloud  │
-│ (Your Server)│        (gRPC / HTTP2)            │   (Relay)    │
-└──────────────┘                                  └──────────────┘
-       │                                                 ▲
-       ▼                                                 │
-┌──────────────┐                                  ┌──────────────┐
-│ Your Docker  │                                  │ Public Users │
-│  Containers  │                                  │  (Internet)  │
-└──────────────┘                                  └──────────────┘
+```mermaid
+graph LR
+    subgraph Client [Your Infrastructure]
+        Edge[Zexio Edge Runtime]
+        App[Your Applications]
+        Edge -- Manage & Proxy --> App
+    end
+
+    subgraph Cloud [Zexio Platform]
+        Relay[Global Relay Network]
+        API[Management API]
+        Dashboard[Web Dashboard]
+    end
+
+    Edge -- "Encrypted Tunnel (gRPC)" --> Relay
+    Edge -- "Telemetry & Config" --> API
+    
+    User((Public Internet)) -- HTTPS --> Relay
+    Relay -- Proxy --> Edge
+    
+    Admin((You)) -- Click Deploy --> Dashboard
+    Dashboard -- Command --> API -- Push --> Edge
 ```
 
 ## 🛠️ Building from Source
