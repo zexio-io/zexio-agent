@@ -1,6 +1,6 @@
 use std::fs;
 use std::process::Command;
-use tracing::{info, error};
+use tracing::info;
 use anyhow::Result;
 
 pub enum ServiceAction {

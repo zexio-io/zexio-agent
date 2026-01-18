@@ -31,7 +31,7 @@ pub async fn install_service_handler(
     // Otherwise, we might eventually pull it from a catalog, but for now we require it or fail.
     let cmd_to_run = payload.command.clone().ok_or_else(|| {
         error!("No command provided for service installation: {}", service);
-        AppError::BadRequest
+        AppError::BadRequest("No command provided".to_string())
     })?;
 
     info!("Request to run command for service {}: {}", service, cmd_to_run);
@@ -121,20 +121,24 @@ pub async fn uninstall_service_handler(
     Json(payload): Json<UninstallServiceRequest>,
 ) -> Result<impl IntoResponse, AppError> {
     let service = payload.service.as_str();
-    info!("Request to UNINSTALL service: {}", service);
+    
+    // If a command is provided in the request, use it.
+    let cmd_to_run = payload.command.clone().ok_or_else(|| {
+        error!("No command provided for service uninstallation: {}", service);
+        AppError::BadRequest("No command provided".to_string())
+    })?;
 
-    match uninstall_package(service).await {
-        Ok(cmd_executed) => {
-            info!(
-                "Service {} uninstalled successfully via: {}",
-                service, cmd_executed
-            );
+    info!("Request to UNINSTALL service {}: {}", service, cmd_to_run);
+
+    match run_generic_command(&cmd_to_run).await {
+        Ok(_) => {
+            info!("Uninstall command executed successfully for {}", service);
             Ok((
                 StatusCode::OK,
                 Json(ServiceResponse {
                     status: "uninstalled".to_string(),
                     service: service.to_string(),
-                    command: cmd_executed,
+                    command: cmd_to_run,
                 }),
             ))
         }
@@ -143,84 +147,4 @@ pub async fn uninstall_service_handler(
             Err(AppError::InternalServerError)
         }
     }
-}
-
-async fn uninstall_package(service: &str) -> Result<String, String> {
-    #[cfg(target_os = "linux")]
-    {
-        uninstall_linux(service).await
-    }
-
-    #[cfg(target_os = "macos")]
-    {
-        uninstall_macos(service).await
-    }
-
-    #[cfg(target_os = "windows")]
-    {
-        uninstall_windows(service).await
-    }
-
-    #[cfg(not(any(target_os = "linux", target_os = "macos", target_os = "windows")))]
-    {
-        Err("Unsupported operating system".to_string())
-    }
-}
-
-#[cfg(target_os = "linux")]
-async fn uninstall_linux(service: &str) -> Result<String, String> {
-    if !service.chars().all(|c| c.is_alphanumeric() || c == '-') {
-        return Err("Invalid service name".to_string());
-    }
-
-    let script = format!("sudo -E apt-get remove -y {}", service);
-    let output = Command::new("bash")
-        .arg("-c")
-        .arg(&script)
-        .output()
-        .map_err(|e| e.to_string())?;
-
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
-    }
-    Ok(script)
-}
-
-#[cfg(target_os = "macos")]
-async fn uninstall_macos(service: &str) -> Result<String, String> {
-    if !service.chars().all(|c| c.is_alphanumeric() || c == '-') {
-        return Err("Invalid service name".to_string());
-    }
-
-    let cmd_str = format!("brew uninstall {}", service);
-    let output = Command::new("brew")
-        .arg("uninstall")
-        .arg(service)
-        .output()
-        .map_err(|e| e.to_string())?;
-
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
-    }
-    Ok(cmd_str)
-}
-
-#[cfg(target_os = "windows")]
-async fn uninstall_windows(service: &str) -> Result<String, String> {
-    if !service.chars().all(|c| c.is_alphanumeric() || c == '-') {
-        return Err("Invalid service name".to_string());
-    }
-
-    let cmd_str = format!("choco uninstall {} -y", service);
-    let output = Command::new("choco")
-        .arg("uninstall")
-        .arg(service)
-        .arg("-y")
-        .output()
-        .map_err(|e| e.to_string())?;
-
-    if !output.status.success() {
-        return Err(String::from_utf8_lossy(&output.stderr).to_string());
-    }
-    Ok(cmd_str)
 }
