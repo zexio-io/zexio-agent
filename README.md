@@ -56,13 +56,12 @@ Run Zexio Agent as a background service (Systemd, Launchd, or Windows Service). 
 | `zexio service status` | Check service health. |
 | `zexio service uninstall` | Stop and remove the system service. |
 
-### Diagnostic & Utils
+### Diagnostic & Info
 | Command | Description |
 |---------|-------------|
 | `zexio up <port>` | Start an ad-hoc tunnel to a local port. |
-| `zexio doctor` | Check network connectivity, DNS, and permissions. |
-| `zexio info` | Display Node ID, Region, and Specs. |
-| `zexio update` | Update to the latest version. |
+| `zexio diag` | Run system and connectivity diagnostics. |
+| `zexio info` | Show detailed agent, node, and relay information. |
 | `zexio version` | Show version info. |
 
 ## ⚙️ Configuration
@@ -76,6 +75,20 @@ However, for advanced networking or self-hosted environments, you can use Enviro
 | `ZEXIO_CLOUD__TOKEN` | Provisioning Token (Env Override) | `None` |
 | `HTTP_PROXY` | Proxy server URL | `None` |
 | `RUN_MODE` | configuration mode | `production` |
+
+## 🛡️ Root vs. Non-Root Usage
+
+Zexio Agent is designed to be flexible. It automatically detects permissions and adjusts its behavior:
+
+### Linux (Server/VPS)
+*   **Root (Recommended)**: If your goal is remote system management (e.g., `zexio install redis`). Root access is required to modify system-level directories and manage services via `systemctl`.
+*   **Non-Root**: Best for isolated environments or Docker-only workflows. Add your user to the `docker` group to manage containers without root. Zexio will store data in `~/.local/share/zexio`.
+
+### macOS
+*   **Non-Root (Recommended)**: Zexio uses **User-Level LaunchAgents**. It integrates perfectly with **Homebrew**, allowing you to install packages (e.g., `brew install pg`) without `sudo`.
+
+### Windows
+*   **Administrator**: Required to install the background service. Once installed, it runs as a system service.
 
 ## 📖 Architecture
 
