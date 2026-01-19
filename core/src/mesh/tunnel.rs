@@ -22,10 +22,10 @@ pub async fn start_tunnel_client(
     settings: Settings,
     node_id: String,
     target_port: u16,
+    relay_url: String,
 ) -> anyhow::Result<()> {
     // 1. Determine Relay URL
-    let relay_url =
-        std::env::var("RELAY_URL").unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
+    info!("🔗 Active Relay URL: {}", relay_url);
 
     // Retry Loop
     loop {

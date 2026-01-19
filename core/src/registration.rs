@@ -38,10 +38,16 @@ struct RegisterResponse {
     data: RegisterData,
 }
 
-#[derive(Serialize, Deserialize)]
-struct Identity {
-    worker_id: String,
-    secret_key: String,
+#[derive(Serialize, Deserialize, Clone)]
+pub struct Identity {
+    pub worker_id: String,
+    pub secret_key: String,
+    #[serde(default = "default_relay")]
+    pub relay_url: String,
+}
+
+fn default_relay() -> String {
+    "wss://relay.zexio.io:443".to_string()
 }
 pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
     let identity_path = &settings.secrets.identity_path;
@@ -150,6 +156,7 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
     let identity = Identity {
         worker_id: response.data.worker_id,
         secret_key: response.data.secret_key,
+        relay_url: "wss://relay.zexio.io:443".to_string(), // Default during initial handshake if not provided
     };
 
     let identity_json = serde_json::to_string_pretty(&identity)?;
@@ -315,6 +322,10 @@ pub async fn interactive_login(settings: &Settings) -> anyhow::Result<()> {
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("Missing node_secret"))?
             .to_string(),
+        relay_url: data["relay_url"]
+            .as_str()
+            .unwrap_or("wss://relay.zexio.io:443")
+            .to_string(),
     };
 
     let identity_json = serde_json::to_string_pretty(&identity)?;
@@ -406,6 +417,10 @@ pub async fn connect_with_token(settings: &Settings, token: String) -> anyhow::R
         secret_key: data["node_secret"]
             .as_str()
             .ok_or_else(|| anyhow::anyhow!("Missing node_secret"))?
+            .to_string(),
+        relay_url: data["relay_url"]
+            .as_str()
+            .unwrap_or("wss://relay.zexio.io:443")
             .to_string(),
     };
 

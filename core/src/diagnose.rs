@@ -1,6 +1,5 @@
 use crate::config::Settings;
 use colored::*;
-use serde_json::Value;
 use std::fs;
 use std::path::Path;
 use std::process::Command;
@@ -12,11 +11,14 @@ pub async fn run_diagnostics(settings: &Settings) -> anyhow::Result<()> {
     );
     println!("{}", "=".repeat(50).dimmed());
 
+    // 0. Load Identity
+    let identity = get_identity(settings);
+
     // 1. Connectivity Check
-    check_connectivity(settings).await;
+    check_connectivity(settings, identity.as_ref()).await;
 
     // 2. Identity Check
-    check_identity(settings);
+    check_identity(settings, identity.as_ref());
 
     // 3. Service/Daemon Check
     check_service();
@@ -34,22 +36,9 @@ pub async fn run_info(settings: &Settings) -> anyhow::Result<()> {
     println!("{}", "=".repeat(50).dimmed());
 
     // Identity Info
-    let identity_path = &settings.secrets.identity_path;
-    if Path::new(identity_path).exists() {
-        if let Ok(content) = fs::read_to_string(identity_path) {
-            if let Ok(json) = serde_json::from_str::<Value>(&content) {
-                println!(
-                    "{:<15} : {}",
-                    "Node ID".bold(),
-                    json["worker_id"].as_str().unwrap_or("Unknown")
-                );
-                println!(
-                    "{:<15} : {}",
-                    "Node Name".bold(),
-                    json["worker_name"].as_str().unwrap_or("Unknown")
-                );
-            }
-        }
+    if let Some(identity) = get_identity(settings) {
+        println!("{:<15} : {}", "Node ID".bold(), identity.worker_id);
+        println!("{:<15} : {}", "Relay Server".bold(), identity.relay_url.blue());
     } else {
         println!("{}", "⚠️  Not registered (identity.json missing)".yellow());
     }
@@ -65,11 +54,6 @@ pub async fn run_info(settings: &Settings) -> anyhow::Result<()> {
     println!("\n{}", "📡 Endpoints:".bold());
     println!("  {:<12} : {}", "Cloud API", settings.cloud.api_url);
 
-    // Relay Server URL (Used by tunnel)
-    let relay_url =
-        std::env::var("RELAY_URL").unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
-    println!("  {:<12} : {}", "Relay Server", relay_url.green());
-
     println!(
         "  {:<12} : http://{}:{}",
         "Mgmt API", settings.server.host, settings.server.port
@@ -83,7 +67,7 @@ pub async fn run_info(settings: &Settings) -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn check_connectivity(settings: &Settings) {
+async fn check_connectivity(settings: &Settings, identity: Option<&crate::registration::Identity>) {
     print!("{:<35} ", "Checking Cloud API Connection...");
     let client = reqwest::Client::new();
     let health_url = format!("{}/health", settings.cloud.api_url);
@@ -100,8 +84,11 @@ async fn check_connectivity(settings: &Settings) {
     }
 
     print!("{:<35} ", "Checking Relay Connectivity...");
-    let relay_url =
-        std::env::var("RELAY_URL").unwrap_or_else(|_| "http://127.0.0.1:50051".to_string());
+    let relay_url = if let Some(id) = identity {
+        id.relay_url.clone()
+    } else {
+        std::env::var("RELAY_URL").unwrap_or_else(|_| "http://127.0.0.1:50051".to_string())
+    };
     // Simple TCP connect check for relay (usually gRPC)
     if let Ok(url) = url::Url::parse(&relay_url) {
         if let Some(host) = url.host_str() {
@@ -120,14 +107,24 @@ async fn check_connectivity(settings: &Settings) {
     }
 }
 
-fn check_identity(settings: &Settings) {
+fn check_identity(_settings: &Settings, identity: Option<&crate::registration::Identity>) {
     print!("{:<35} ", "Verifying Local Identity...");
-    if Path::new(&settings.secrets.identity_path).exists() {
+    if identity.is_some() {
         println!("{}", "[ OK ]".bold().green());
     } else {
         println!("{}", "[ MISSING ]".bold().yellow());
         println!("  (Run 'zexio login' or 'zexio connect <token>')");
     }
+}
+
+fn get_identity(settings: &Settings) -> Option<crate::registration::Identity> {
+    let identity_path = &settings.secrets.identity_path;
+    if Path::new(identity_path).exists() {
+        if let Ok(content) = fs::read_to_string(identity_path) {
+            return serde_json::from_str(&content).ok();
+        }
+    }
+    None
 }
 
 fn check_service() {
