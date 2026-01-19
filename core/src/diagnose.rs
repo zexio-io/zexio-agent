@@ -38,7 +38,7 @@ pub async fn run_info(settings: &Settings) -> anyhow::Result<()> {
     // Identity Info
     if let Some(identity) = get_identity(settings) {
         println!("{:<15} : {}", "Node ID".bold(), identity.worker_id);
-        println!("{:<15} : {}", "Relay Server".bold(), identity.relay_url.blue());
+        println!("{:<15} : {}", "Relay Server".bold(), identity.relay_name.blue());
     } else {
         println!("{}", "⚠️  Not registered (identity.json missing)".yellow());
     }

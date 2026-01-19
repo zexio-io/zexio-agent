@@ -44,10 +44,16 @@ pub struct Identity {
     pub secret_key: String,
     #[serde(default = "default_relay")]
     pub relay_url: String,
+    #[serde(default = "default_relay_name")]
+    pub relay_name: String,
 }
 
 fn default_relay() -> String {
     "wss://relay.zexio.io:443".to_string()
+}
+
+fn default_relay_name() -> String {
+    "Zexio Global Relay".to_string()
 }
 pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
     let identity_path = &settings.secrets.identity_path;
@@ -157,6 +163,7 @@ pub async fn handshake(settings: &Settings) -> anyhow::Result<()> {
         worker_id: response.data.worker_id,
         secret_key: response.data.secret_key,
         relay_url: "wss://relay.zexio.io:443".to_string(), // Default during initial handshake if not provided
+        relay_name: "Zexio Global Relay".to_string(),
     };
 
     let identity_json = serde_json::to_string_pretty(&identity)?;
@@ -326,6 +333,10 @@ pub async fn interactive_login(settings: &Settings) -> anyhow::Result<()> {
             .as_str()
             .unwrap_or("wss://relay.zexio.io:443")
             .to_string(),
+        relay_name: data["relay_name"]
+            .as_str()
+            .unwrap_or("Zexio Global Relay")
+            .to_string(),
     };
 
     let identity_json = serde_json::to_string_pretty(&identity)?;
@@ -421,6 +432,10 @@ pub async fn connect_with_token(settings: &Settings, token: String) -> anyhow::R
         relay_url: data["relay_url"]
             .as_str()
             .unwrap_or("wss://relay.zexio.io:443")
+            .to_string(),
+        relay_name: data["relay_name"]
+            .as_str()
+            .unwrap_or("Zexio Global Relay")
             .to_string(),
     };
 
