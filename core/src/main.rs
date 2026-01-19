@@ -2,6 +2,7 @@ mod config;
 mod crypto;
 mod daemon;
 mod deploy;
+mod diagnose;
 mod errors;
 mod mesh;
 mod middleware;
@@ -66,6 +67,10 @@ enum Commands {
         #[command(subcommand)]
         action: ServiceAction,
     },
+    /// Show detailed agent and cloud information
+    Info,
+    /// Run system and connectivity diagnostics
+    Diag,
 }
 
 #[derive(Subcommand)]
@@ -145,6 +150,14 @@ async fn main() -> anyhow::Result<()> {
             daemon::handle_service(daemon_action).await?;
             return Ok(());
         }
+        Some(Commands::Info) => {
+            diagnose::run_info(&settings).await?;
+            return Ok(());
+        }
+        Some(Commands::Diag) => {
+            diagnose::run_diagnostics(&settings).await?;
+            return Ok(());
+        }
         Some(Commands::Install { package, command }) => {
             if let Some(cmd) = command {
                 info!(
@@ -221,7 +234,10 @@ fn print_banner() {
     println!("  ____           _         ");
     println!(" |_  / ___ __ _(_) ___    ");
     println!("  / / / -_) _` / / _ \\   ");
-    println!(" /___\\___/_,_/_|_\\___/   Agent v0.3.1");
+    println!(
+        " /___\\___/_,_/_|_\\___/   Agent v{}",
+        env!("CARGO_PKG_VERSION")
+    );
     println!("{}", "=".repeat(60));
     println!("  Deploy Anything. Anywhere. Securely.");
     println!("{}\n", "=".repeat(60));
